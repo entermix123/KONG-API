@@ -1,1 +1,29 @@
- 2 Technology in this course
+Section 2 Technology in this course
+===================================
+
+Section Content
+---------------
+5. Source Code & Scripts
+6. Technology Overview
+
+
+
+
+5. Source Code & Scripts
+========================
+- We will use KONG 3 in this coourse
+- Downloadable scripts & source code
+
+
+6. Technology Overview
+======================
+
+- Docker - create our working nevironment
+- KONG 3 - API management + plugins
+- Zipkin - Distributed Tracing
+- API Analysis - ELK - Elasticsearch (data storage), Logstash (pumping data), Kibana (visualize data)
+
+
+
+
+
