@@ -1,0 +1,97 @@
+Section 1 Introduction to KONG 3
+================================
+
+Section Content
+---------------
+1. Readme First : Hardware & Software Required
+2. Welcome To This Course
+3. Course Structure
+4. Tips : How To Get Maximum Value From This Course
+
+
+
+
+1. Readme First : Hardware & Software Required
+==============================================
+What is Your Goal?
+
+This course contains theory and experience sharing about API Management using Kong API Management.
+
+If you aim to enrich your knowledge, then a web browser or Udemy mobile application is enough.
+
+If you want to do hands-on with API Management Tools, you must install Kong.
+
+
+Minimum Installation Requirements
+
+You will need at least:
+
+    3 GB free hard-drive spaces
+
+    8 GB memory
+
+    4 core CPU
+
+
+This course use Docker (https://www.docker.com/) for installation. So you will learn not only API management, but also basic container technology using Docker! Nice, right?
+
+To install Docker, your machine needs specific requirements. For Docker requirements of each operating system, please see official documentation:
+
+    Windows requirement - https://docs.docker.com/desktop/setup/install/windows-install/
+
+    Mac requirement - https://docs.docker.com/desktop/setup/install/mac-install/
+
+    Linux requirement - https://docs.docker.com/desktop/setup/install/linux/
+
+
+Happy learning!
+
+
+
+2. Welcome To This Course
+=========================
+
+In this course we will implement API management by combining few open source tools like KONG, Docker, Elastic Search and Zipkin.
+
+
+
+3. Course Structure
+===================
+
+Course Structure:
+- Overview
+- Software Architecture & REST API
+- API Management role
+- Using Docker
+- KONG concept & basic usage
+- Manage KONG
+- API Health check & load balancing
+- Plugins (authorization, traffic control)
+
+- Combine with other tools: Elasticsearch, Logistash, Kibana
+- Distributed tracing (Zipkin)
+- Securing API management
+- API Documentation
+- Bonus Lecture
+
+
+
+4. Tips : How To Get Maximum Value From This Course
+===================================================
+
+1. Enjoy Learning
+2. Recommended approach: Watch 5-10 minutes without typing and try to understand the concepts, then pause and try to replicate them in the environemtn. Absorb the knowledge
+3. Use subtitles if words are not recognisable because of the dialect
+4. Use video speed management if you can handle faster or slower course speed
+5. The course is structured specifically NOT to skip any lessons. We will start slow and proceed faster so any skipped lessons can cause fondusion later in the course. Not mandatory lessons will be marked as optional.
+6. If we stuck on a issue we can use Q&A section of the course, use stack overflow, Google or ask AI agent
+7. We will use the latest version of the used software tools in the course
+
+
+
+
+
+
+
+
+
