@@ -1,1 +1,70 @@
-6 Hello Kong 3
+Section 6 Hello Kong 3
+======================
+
+
+Section Content
+---------------
+17. Postman
+18. Hello Kong
+19. Secure Our API
+
+
+
+
+17. Postman
+===========
+
+Postman - free development environment for API
+
+Register, download and install postman - https://www.postman.com/
+
+
+
+
+18. Hello Kong
+==============
+
+Create Postman blank collection and name it 'Kong Basics'
+
+Create 'GET' request with address 'http://localhost:8001' and press 'Send' button.
+
+We should receive Response with status code '200 OK'
+
+We will use the provided Postman collection in the course resources. Drag and drop the collection into Postman collection field.
+
+We should get 'Course - Kong API management' collection with 2 sub folders: 'Course Content' and 'Other Kong Admin API'
+
+
+Postman Variables
+-----------------
+
+We can save specific request as variable and avoid configure it in different cases.
+Go to 'Course - Kong API management' / Variables. We can see all variables and their addresses
+
+Variable					Value
+------------------------------------------------------------------------------
+kong.admin					http://localhost:8001
+
+kong.gateway					http://localhost:8000
+
+kong.gateway.ssl				https://localhost:8443
+
+alpha						{{kong.gateway}}/alpha
+
+beta						{{kong.gateway}}/beta
+
+gamma						{{kong.gateway}}/gamma
+
+omega						{{kong.gateway}}/omega
+------------------------------------------------------------------------------
+
+
+
+19. Secure Our API
+==================
+
+Our APIs can be access true Kong. The architecture is presented on kong-secure-api.png.
+
+Additional API security as tokens/strong passwords are recommmended to prevent breaches - additional-api-security.png
+
+
