@@ -1,1 +1,130 @@
-8 Graphic User Interface
+Section 8 Graphic User Interface
+================================
+
+
+Section Content
+---------------
+26. User Interface: Kong Manager
+27. Alternative User Interface : Konga (With Important Notes!)
+
+
+
+
+26. User Interface: Kong Manager
+================================
+
+After version 3 Kong provides user interface instead of using Postman.
+
+We will access Kong Manager on address http://localhost:8002
+	- does not provide login page (everyone can access the kong manager URL and configure the Kong gateway)
+
+In this lection we will use Kong UI to add several object like services, routes and consumers.
+
+
+Create Services
+---------------
+List service on http://localhost:8002 / Gateway Services page
+
+Add new service called 'alpha' with '+ New Gateway Service':
+- Name: alpha
+- Upstream URL: http://aplha:9001
+- Save
+
+
+Add new service called 'beta' with '+ New Gateway Service':
+- Name: beta
+- Upstream URL: http://beta:9002
+- Save
+
+Add new service called 'omega' with '+ New Gateway Service':
+- Name: beta
+- Upstream URL: http://omega:9004
+- Save
+
+
+
+Create Routes
+-------------
+We can add routes in each service details. For simplicity reasons the services will have only one route. Ir real case one service can have multiple routes.
+
+Add route in service 'alpha'
+	- Services / alpha / Routes / + Add Route
+		- Name: alpha-route
+		- Protocols: HTTP, HTTPS
+		- Paths: /alpha
+		- Save
+
+Add route in service 'beta'
+	- Services / beta / Routes / + Add Route
+		- Name: beta-route
+		- Protocols: HTTP, HTTPS
+		- Paths: /beta
+		- Save
+
+Add route in service 'omega'
+	- Services / beta / Routes / + Add Route
+		- Name: omega-route
+		- Protocols: HTTP, HTTPS
+		- Paths: /omega
+		- Save
+
+
+Edit route in service 'gamma' and set proper name
+	- Services / beta / Routes / Edit
+		- Name: gamma-route
+		- Save
+
+
+
+Open postman and test the services with requests in Course Content / REST API Services
+	- Alpha / GET Alpha - Status
+	- Beta / GET Beta - Status
+	- Gamma / GET Gamma Status
+	- Omega / GET Omega Status
+
+We should receive this response:
+----------------------------------------------------
+{
+    "status": "UP",
+    "groups": [
+        "liveness",
+        "readiness"
+    ]
+}
+----------------------------------------------------
+
+
+
+Add consumer
+------------
+
+Go to http://localhost:8002/consumers
+
+We can see that we have only one consumer - helen
+
+Add new consumer with '+ New Consumer' button
+	- Name: Apolo
+	- Save
+
+
+
+
+
+27. Alternative User Interface : Konga (With Important Notes!)
+==============================================================
+
+OPTIONAL 
+
+Not maintained by the creator or the community. We will use Kong Admin instead of KONGA further in the course.
+We can deploy Konga with docker from course resources.
+Konga is used for user administration. It has dashboard and more detailed administrative features as snapshots.
+Snapshots can be set to be esported scheduled with cronjobs.
+We can restore Kong configuration wuth exported snapshot.
+
+Konga can use notification systems with Email or 3th party applications like Slack.
+
+
+
+
+
+

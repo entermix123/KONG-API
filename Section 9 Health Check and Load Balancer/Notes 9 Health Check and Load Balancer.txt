@@ -1,1 +1,408 @@
 Section 9 Health Check and Load Balancer
+========================================
+
+
+Section Content
+---------------
+28. Health Check & Load Balance
+29. Upstream & Target
+30. Revisit Kong Services
+31. Health Check In Action
+
+
+
+
+
+28. Health Check & Load Balance
+===============================
+
+Health Check
+------------
+Upstream - virtual group for service. This upstream group may have one or more targets representing the server in which the service runs. We can use Kong and optionally Konga to as dashboards to know which service is unresponsible. If one of the service targets is down it will be marked as unhealthy. 
+
+Kong provides 2 types of health checks: passive and active. 
+Active healthcheck Kong will send check requests periodically to the target.
+Passive healthchecks are also known as circuit brakers - The check is performed based on the requests proxied by Kong, so no additional traffic is generated.
+
+For health check, If HTTP requests fail for configured interval and numbers, Kong will mark that target as unhealthy.
+
+
+Load Balance
+------------
+Load balancing is a mechanism to distribute incoming requests into multiple servers or targets. The load balancing usually happens if the incoming requests are too much to be handled only by a single target.
+
+We can add or remove server targets for particular upstream. As a load balancer, Kong's tasks are Distributes client requests or network load efficiently across multiple servers, ensures high availability and reliability by sending requests only to servers that are online. Provides the flexibility to add or subtract servers as demand dictates. Kong load balancer is sometimes also referred to as "ring balancer."
+
+Kong has several algorithms to distribute requests. The common algorithm uses weighted round robin, where target servers are given different weight numbers according to their capability. The servers with higher weights will receive more requests. In the example presented in picture load-balancer-weighted-round-robin.png the most requests will be received by target 3.
+
+Another algorithm uses a hash-based algorithm, where the request will be distributed to the server based on the hash value of certain request attributes, which can be Kong consumer ID, remote IP, specific header, or cookie. Requests with the same hash will be distributed to the same target - load-balancer-hash-based.png
+
+When load balancing is combined with a health check, Kong will automatically distribute incoming requests only to healthy nodes. So if target one is suddenly unhealthy, only targets two and three will receive requests. If target one becomes healthy again, then Kong will distribute requests to all targets.
+
+
+
+
+29. Upstream & Target
+=====================
+
+We will add upstreams to each services we have created earlier.
+
+Create Upstream
+---------------
+
+Go to http://localhost:8002/upstreams / + New Upstream
+	- Name: alpha-upstream
+	- Algorithm: Round Balancing
+	- Slots: 1000				# at least 100 per target to assure proper distribution
+	- Enable Active health Check
+	- Heathckecks Threshold: 20	# percentage of the minimum available target for the upstream to be considered healthy
+	# if 20% of the target is healthy then the upstream is considered healthy and can receive a request.
+	- HTTP Path: /actuator/health	
+	# This path can be anything if it responds fast and with an HTTP status code indicating success.
+	- Concurrency: 4		# indicates the number of targets to check concurrently in active health checks.
+
+	- Healthy/Interval: 10		# interval between active health checks for healthy targets.
+	# A value of zero indicates that active probes for healthy targets should not be performed
+	- Health/Successes: 3 		# if three consecutive requests succeed, then the target is marked as healthy.
+	- Health/HTTP Statuses: 200	# indicating success.
+
+	- Unhealthy/Interval: 10 	# interval between active health checks for unhealthy targets.
+	# A zero value indicates that active probes for unhealthy targets should not be performed.
+	- Unhealthy/HTTP Failure: 3	# if three consecutive requests fail, the target is marked as unhealthy.
+	- Unhealthy/HTTP Statuses: Default - 404, 429 (too many r-sts), 500, 501, 502, 503, 504, 505
+	- Unhealthy/Timeouts: 5 	# if the target does not respond within 5 seconds, it will be considered a failed request.
+
+	- Save
+
+We can adjust parameters according to our needs. Parameter values in this lecture are just for example.
+
+Create Target for the created Upstream
+--------------------------------------
+Select the created Upstream and go to the Target Tab / + New Target
+	- Target Address: alpha:9001
+	- Weight: 100
+	- Save
+
+
+Test the Created Upstream with Postman
+--------------------------------------
+
+Open Postman collection and send request Course Content / Upstream / GET Upstream - Status
+We should receive response with code 200 OK
+
+
+If we see the postman collection, folder upstream, to add upstream, it should have the tcp_failures field.
+----------------------------------------------------
+{
+	"name" : "beta-upstream",
+	"slots" : 1000,
+	"healthchecks": {
+        "active": {
+            "concurrency": 4,
+            "healthy": {
+                "interval": 0,
+                "successes": 3
+            },
+            "http_path": "/actuator/health",
+            "timeout": 3,
+            "unhealthy": {
+                "http_failures": 3,
+                "interval": 0,
+                "tcp_failures": 3,		# this field
+                "timeouts": 3
+            }
+        },
+        "passive": {
+            "healthy": {
+                "successes": 3
+            },
+            "unhealthy": {
+                "http_failures": 3,
+                "tcp_failures": 3,
+                "timeouts": 3
+            }
+        }
+    }
+}
+----------------------------------------------------
+
+This field is used for the Number of TCP failures in active probes to consider a target unhealthy. In the future, this might change, but for now, using Kong admin REST API to add upstream is a better way.
+
+When the server responds to an HTTP request, the server will send a response that includes HTTP status codes. HTTP has many status codes grouped into five categories, indicated by the first number on the response.
+
+Starting with 1 is informational status codes. 
+Starting with 2 is success status codes.
+Starting with 3 means redirection to another page.
+Starting with 4 is a client error. 
+Starting with 5 is a server error.
+
+Returning correct status codes is a good practice so the client can process accordingly. For example, when a client sends a request to restricted API without correct authorization then the API provider should return a response with the status 401 Unauthorized.
+
+
+Add 'beta' Upstrean using Postman
+---------------------------------
+
+Adjust request Course Content / Upstream / POST Upstream - Add
+----------------------------------------------------
+{
+	"name" : "beta-upstream",
+	"slots" : 1000,
+	"healthchecks": {
+        "active": {
+            "concurrency": 4,
+            "healthy": {
+                "interval": 0,				# passive healthcheck
+                "successes": 3
+            },
+            "http_path": "/actuator/health",
+            "timeout": 3,
+            "unhealthy": {
+                "http_failures": 3,
+                "interval": 0,				# passive healthcheck
+                "tcp_failures": 3,
+                "timeouts": 3
+            }
+        },
+        "passive": {					# passive healthcheck
+            "healthy": {
+                "successes": 3
+            },
+            "unhealthy": {
+                "http_failures": 3,
+                "tcp_failures": 3,
+                "timeouts": 3
+            }
+        }
+    }
+}
+----------------------------------------------------
+If you use this template, remove the comments before applying it.
+
+We should receive response with status code 201 Created.
+
+Create target to beta upstream
+------------------------------
+
+Send request Course Content / Target / POST Target - Add
+
+Body:
+----------------------------------------------------
+{
+	"target" : "beta:9002",
+	"weight" : 100
+}
+----------------------------------------------------
+
+We should receive response with status 201 Created.
+
+Check the results in Kong manager - http://localhost:8002/upstreams
+	- We should see beta upstream listed with target in its details
+
+
+
+
+
+Create 'gamma' upstream with Postman
+------------------------------------
+
+Adjust request Course Content / Upstream / POST Upstream - Add
+----------------------------------------------------
+{
+	"name" : "gamma-upstream",
+	"slots" : 1000,
+	"healthchecks": {
+        "active": {
+            "concurrency": 4,
+            "healthy": {
+                "interval": 10,
+                "successes": 3
+            },
+            "http_path": "/actuator/health",
+            "timeout": 3,
+            "unhealthy": {
+                "http_failures": 3,
+                "interval": 10,
+                "tcp_failures": 3,
+                "timeouts": 3
+            }
+        }
+    }
+}
+----------------------------------------------------
+If you use this template, remove the comments before applying it.
+
+We should receive response with status code 201 Created.
+
+Create target to beta upstream
+------------------------------
+
+Edit and send request Course Content / Target / POST Target - Add
+
+Params: Key: 'upstream-name', Value: 'gamma-upstream'
+
+Body:
+----------------------------------------------------
+{
+	"target" : "gamma:9003",
+	"weight" : 100
+}
+----------------------------------------------------
+
+We should receive response with status 201 Created.
+
+Check the results in Kong manager - http://localhost:8002/upstreams
+	- We should see gamma upstream listed with target in its details
+
+
+
+
+
+Create 'omega' upstream with Postman
+------------------------------------
+
+Adjust request Course Content / Upstream / POST Upstream - Add
+----------------------------------------------------
+{
+	"name" : "omega-upstream",
+	"slots" : 1000,
+	"healthchecks": {
+        "active": {
+            "concurrency": 4,
+            "healthy": {
+                "interval": 10,
+                "successes": 3
+            },
+            "http_path": "/actuator/health",
+            "timeout": 3,
+            "unhealthy": {
+                "http_failures": 3,
+                "interval": 10,
+                "tcp_failures": 3,
+                "timeouts": 3
+            }
+        }
+    }
+}
+----------------------------------------------------
+If you use this template, remove the comments before applying it.
+
+We should receive response with status code 201 Created.
+
+Create target to beta upstream
+------------------------------
+
+Edit and send request Course Content / Target / POST Target - Add
+
+Params: Key: 'upstream-name', Value: 'omega-upstream'
+
+Body:
+----------------------------------------------------
+{
+	"target" : "omega:9004",
+	"weight" : 100
+}
+----------------------------------------------------
+
+We should receive response with status 201 Created.
+
+Check the results in Kong manager - http://localhost:8002/upstreams
+	- We should see gamma upstream listed with target in its details
+
+
+
+
+
+30. Revisit Kong Services
+=========================
+
+- We can refer Kong service with 'upstream.name'
+- We are using Docker to simulate our environment
+- Possibility: We can have separate nodes or machines for each service in real life.
+- Currently, we have docker in our machine, so all software in this course running on a virtual machine as a docker container within the virtual network kong-net
+
+- We have an alpha container running on docker IP 172.1.1.11, port 9001, and named alpha. The container name is like a domain name inside the docker network.
+
+- Our Kong, also a docker container with IP 172.1.1.40 Currently, we have several objects in Kong. 
+
+- We have a service with the name alpha, host to alpha, and port 9001 which means we refer to the alpha container by domain name. To access the service, we create an alpha-route with path is /alpha which means every incoming request to kong-address/alpha will be routed to the alpha service. Alpha service then proxying request to the alpha container We also configured an upstream. The upstream name is alpha-upstream, with one target to 172.1.1.11:9001, the docker alpha container. The incoming requests, indicated by the brown arrow, never go through upstream. - alpha-service.png
+
+
+How do we make load balancing work?
+-----------------------------------
+What we need to do is redirect the service host upstream, which means replacing this "alpha" with "alpha-upstream", So, the service now refers to an upstream instead of a direct alpha container. And the traffic from the service now goes through alpha-upstream instead of direct access. - alpha-service-upstream.png
+
+
+So, let's take a look at a diagram without docker
+-------------------------------------------------
+
+alpha-service-no-docker.png
+
+Let's say that the IP for alpha is in 192.3.3.17, on port 8080. It has DNS on alpha.athena.com. Kong configuration will need : The service host adjusted to alpha-upstream and the target IP upstream was adjusted to the alpha IP address. And this is the architecture if we have more than one alpha instance.
+
+Say alpha-2 on 192.3.3.46. We need to add a second target, referring to alpha-2. Kong will then distribute traffic using a load balancer mechanism.
+
+
+
+Modify the service
+------------------
+
+Edit alpha services
+- Go to http://localhost:8002/services/alpha / Edit
+	- Host: alpha-upstream
+	- Port: 0
+	- Save
+
+
+Edit beta services
+- Go to http://localhost:8002/services/beta / Edit
+	- Host: beta-upstream
+	- Port: 0
+	- Save
+
+
+Edit gamma services
+- Go to http://localhost:8002/services/gamma / Edit
+	- Host: gamma-upstream
+	- Port: 0
+	- Save
+
+Edit omega services
+- Go to http://localhost:8002/services/omega / Edit
+	- Host: omega-upstream
+	- Port: 0
+	- Save
+
+Test services in Postman with requests
+	- Course Content / REST API Services / Alpha / GET Alpha - Status
+	- Course Content / REST API Services / Beta / GET Beta - Status
+	- Course Content / REST API Services / Gamma / GET Gamma - Status
+	- Course Content / REST API Services / Omega / GET Omega - Status
+
+We should receive response with status 200 OK
+----------------------------------------------------
+{
+    "status": "UP",
+    "groups": [
+        "liveness",
+        "readiness"
+    ]
+}
+----------------------------------------------------
+
+
+
+
+31. Health Check In Action
+==========================
+
+Edit and send request for each upstream Course Content / Upstream / GET Upstream - Status
+
+Edit Params / Key: 'upstream-name', Value: 'alpha-upstream' for aplha
+Edit Params / Key: 'upstream-name', Value: 'beta-upstream' for beta
+Edit Params / Key: 'upstream-name', Value: 'gamma-upstream' for gamma
+Edit Params / Key: 'upstream-name', Value: 'omega-upstream' for omega
+
+We should receive response with code status 200 OK
+
+We can turn off alpha container and check that the status appear 'UNHEALTHY'
+
