@@ -1,0 +1,165 @@
+Section 3 Software achitecture & REST API
+=========================================
+
+Section Content
+---------------
+7. Software Architecture
+8. System Communication Evolution
+9. REST API Basic Concept
+10. REST API Types
+
+
+
+
+
+
+7. Software Architecture
+========================
+
+2 Types of software achitecture
+	- Monilith		# everithing in single application
+	- Microservice		# distributed by nature
+
+Examples for application management: Monolith/Microservice
+-----------------------------------
+- User interface + business logic + data access
+- Monolith package & delivered as single unit
+- Single unit deployment
+
+					Monolith:			
+					=========
+User interface (Browser)	Business Logic		Database access		
+------------------------	--------------		---------------		
+Transaction			Transaction		Transaction
+Payment				Payment			Payment
+Logistic			Logistic		Logistic
+
+
+Pros:
+- Easy source code navigation
+- Easy debugging
+- Easy deployment
+- Performance
+- Relatively easy development
+
+Cons:
+- Tight coupling (dificult to isolate modules, independant scalability or code maintainability)
+- Limited Knowledge (all in one and no one knows exactly what is happening)
+- Undesirable effects on other modules on change (even if they are no directly connected)
+- Limited tech stack (can limit try tool avalability for the job: example - changing a payment module using different module stack is difficult since current is one big container and code base)
+- Hard to scale (if we scale we need to scale the entire application. Monolith is good for small applications)
+
+
+
+						Microservice
+						============
+						     |
+						     |
+	-------------------------------------------------------------------------------------------------
+	|					     |							|
+   Transaction					  Payment					     Logistic
+   -----------					  -------					     --------
+
+Every service (Transaction, Payment, Logistic) is independent
+
+
+Pros:
+- Loose couple - can be handled independantly by different teams
+- Easier Knowledge maintenance (separate for each service)
+- Less undesirable effects on change
+- Change tech stack is easier in one service
+- Easy to scale (scale up only the required service)
+
+Cons:
+- Increased complexity (harder to manage packaging for multiple services when one service is changed)
+- Required: automated testing, automated deployment and API management
+
+
+
+
+8. System Communication Evolution
+=================================
+Communication
+- Getting data
+- Sending data
+Example: payment service ask logistic service to process delivery of payed product
+
+Examples:
+---------
+Multiple ways to communicate
+	- Getting data example: 'A' get weather data from 'B'
+	- Sending data example: 'X' send sales transaction data to 'Y'
+
+Older systems
+-------------
+Case 1: Some systems still relies on text files (CSV, JSON) to transfer data A -> B. Data can be transfered with shceduled (cronjob) in specific hour daily.
+
+Case 2: Data is recorded in database system and data is read by another database A -query-> B (stagin table, interface table).
+X can require Y to send (insert filtered data in specific table). Incorrect data will be marked as 'incorrect' and will be 
+
+REST (Representational State Transfer) API (Application Programming Interface)
+------------------------------------------------------------------------------
+
+Case 1: A is client application, B is API server. A fetches data from or record data to B (GET, POST). B can be monolith system or microservice and can provide data to many clients. On other hand B (API server) can have connections with other API servers. The clients don't need to know anything about B abd its connections.
+
+Case 2: Message Broker - Message Broker is central node (Apache Kafka, Rabbit MQ). All communication goes true the message broker. This communication is asynchronus, near real time adn an important block on microservice architecture. The preocess is presented on message-broker-communication.png. We will go over more details aboutApache Kafka and Rabbit MQ in the last chapter in this course
+
+
+
+
+
+9. REST API Basic Concept
+=========================
+
+API is sort of user interface (API.png) that allows us to communicate with the backend of a system. Example for modersn API is Google authorization. We can authorize in different sites with Google without exposing code or credentials.
+
+REST API
+- Web acrhitecture
+- Implementation of the cient and server is independent from each other (any changes not affect the other as long as the format of the request and response remains the same)
+- Stateless - Client or server do not need to know anything about the other side as long they are using the correct communication format.
+- Nowadays, commonly used HTTP & JSON formats (other formats as XML and SVC are also used)
+- High support from modern programming languages - client and server can be writtten in different languages.
+
+
+REST API is not technology or standard programming language
+REST API is architecture style and guideline. 
+
+REST API Principles:
+- It has Uniform Interface (resources in the system have only one logical URI - Uniform Resource Identifier and that should provide a way to fetch or add additional data)
+- Client-server -  means that client application and server application must be able to developed separately without any dependency on each other
+- Stateless - Stateless, means server will not store anything about latest HTTP request client made. It will treat each and every request as new. No session or history saved in server. If client application needs to be a stateful application for the end user, where user logs in once and do other authorized operations thereafter, then each request from the client should contain all the information necessary to service the request – including authentication and authorization details.
+- Cachable - means client, server and any intermediary components can all cache resources in order to improve performance Layered system
+- Layered system, For example when we deploy the APIs on server X, store data on server Y and authenticate requests in Server Z. A client cannot tell whether it is connected directly to the end server, or to other layer along the way.
+- Code on demand - This is optional. Usually REST response in static format like JSON, XML, or image. But when needed, we are free to return executable code to support a part of your application.
+
+HTTP response statuses
+----------------------
+HTTP has many status codes, but basically they are grouped into 5 categories, indicated with the first number on response.
+
+Started with 1, is informational
+Started with 2, is success status codes
+Started with 3, is redirection to another page
+Started with 4, is client error 
+Started with 5, is server error
+
+Good practice is returning correct status code with error message as response body, so client can process it, maybe as simple as displaying error message.
+
+
+
+
+10. REST API Types
+==================
+
+Private / Internal			Partner						Public
+------------------			-------						------
+Same organization			Used from different organization		Open for everyone
+Employee, community member, etc.	Has agreement					Anybody can request access & use
+Restricted usage			Usage based on agreement			Credential per user
+					(Google, Social Media platform)
+
+
+
+
+
+
+
