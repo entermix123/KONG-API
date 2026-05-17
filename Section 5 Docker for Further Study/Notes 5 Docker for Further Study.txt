@@ -1,1 +1,153 @@
-5 Docker for Further Study
+Section 5 Docker for Further Study
+==================================
+
+
+Section Content
+---------------
+12. IMPORTANT! Required Ports
+13. What & Why Docker
+14. Install Kong (Using Docker)
+15. Tips: Useful Docker Commands
+16. Docker Network
+
+
+
+
+
+12. IMPORTANT! Required Ports
+=============================
+
+The following port must be available to be used in this course:
+
+    5432 : PostgreSQL. If you have a runningPostgreSQL server, please stop it since we will use Docker PostgreSQL.
+
+    8000 : Kong gateway (via plain HTTP)
+
+    8443 : Kong gateway (via HTTPS)
+
+    8001 : Kong admin API
+
+    8002 : Kong Manager UI
+
+    9001, 9002, 9003, 9004 : Dummy services (alpha, beta, gamma, omega)
+
+
+Optional port that used in some lectures. If you skip the lectures, you won't need these ports:
+
+    9411 : Zipkin. We will use it on lecture about distributed tracing
+
+    9200, 9600, 5555, 5601 : Elastic stack (Elasticsearch, Logstash, Kibana). We will use it on lecture about API analytics
+
+    80, 443 : Kong gateway (optional, on one lesson we will change ports)
+
+
+
+
+
+13. What & Why Docker
+=====================
+
+Install Docker - https://www.docker.com/
+
+Confirm Docker installation
+	terminal --> docker version
+
+Confirm Docker Compose installation
+	terminal --> docker-compose version
+
+Download course resources from the last lecture of the course - 60. Download Source Code & Scripts
+
+
+
+14. Install Kong (Using Docker)
+===============================
+
+Kong uses PostgreSQL. We will install PostgreSQL and Kong with Docker.
+
+Istall Kong
+-----------
+
+Navigate to 'kong' directory
+	terminal --> docker-compose up -d
+
+Confirm containers are in running state
+	terminal --> docker ps
+
+	# we should have 4 running containers
+
+CONTAINER ID   IMAGE                                     COMMAND                  CREATED              STATUS                        PORTS                                                                                                          NAMES
+7723b42d9251   timpamungkas/api-management-alpha:3.0.0   "java -Djava.securit…"   About a minute ago   Up About a minute             0.0.0.0:9001->9001/tcp, [::]:9001->9001/tcp                                                                    alpha
+9fab4c5ac414   timpamungkas/api-management-omega:3.0.0   "java -Djava.securit…"   About a minute ago   Up About a minute             0.0.0.0:9004->9004/tcp, [::]:9004->9004/tcp                                                                    omega
+9260e32126ba   timpamungkas/api-management-gamma:3.0.0   "java -Djava.securit…"   About a minute ago   Up About a minute             0.0.0.0:9003->9003/tcp, [::]:9003->9003/tcp                                                                    gamma
+d71e34749687   timpamungkas/api-management-beta:3.0.0    "java -Djava.securit…"   About a minute ago   Up About a minute             0.0.0.0:9002->9002/tcp, [::]:9002->9002/tcp                                                                    beta
+32d0309f35ce   kong:3.5                                  "/docker-entrypoint.…"   About a minute ago   Up About a minute (healthy)   0.0.0.0:8000->8000/tcp, 127.0.0.1:8001-8002->8001-8002/tcp, 0.0.0.0:8443->8443/tcp, 127.0.0.1:8444->8444/tcp   kong-kong-1
+ac9fd92f50a1   postgres:16-alpine                        "docker-entrypoint.s…"   About a minute ago   Up About a minute (healthy)   5432/tcp                                                                                                       kong-kong-database-1
+
+
+We have Kong Services
+	- http://localhost:8000		# Kong HTTP traffic
+	- https://localhost:8443	# Kong HTTPS traffic
+	- http://localhost:8001 	# Kond administration REST API
+	- http://localhost:8002		# Kong Manager User Interface 
+
+We have dummy REST services written in Java
+	- Alpha
+	- Beta
+	- Gamma
+	- Omega
+
+
+
+15. Tips: Useful Docker Commands
+================================
+
+The following docker tips might be handy in this course.
+
+Please note that this course is NOT focusing on docker, so this is just a supplementary tips.
+
+
+Docker-compose Commands
+-----------------------
+IMPORTANT: Before starting the docker-compose command, make sure docker-compose.yml is in the current directory.
+	terminal --> docker-compose up -d
+
+Create all containers and start them.
+	terminal --> docker-compose start
+
+Start all containers.
+	terminal --> docker-compose stop
+
+Stop all running containers.
+	terminal --> docker-compose down
+
+Stop all containers and remove them.
+	terminal --> docker-compose ps
+
+List all running containers.
+	terminal --> docker-compose [command] --help
+
+Display additional information for [command]
+
+
+
+
+16. Docker Network
+==================
+
+The network of docker using kong is presented in picture kong-docker.png.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
