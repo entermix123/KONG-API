@@ -1,0 +1,48 @@
+Section 10 Kon Plugins
+======================
+
+
+Section Content
+---------------
+32. Plugins for More Power!
+33. Services & API for This Course
+
+
+
+32. Plugins for More Power!
+===========================
+
+So, we have Kong for our API management. Plain Kong installation has mandatory "common functionalities" like services, routes, and consumers. If we want to add certain "common functionalities", we can use the Kong plugin. We don't need to add all of the available plugins. 
+
+So, for example, if we only need to add a Hit rate limit, logging, and API key, we can install only those three plugins. All Kong plugins can be applied at the global level. Some plugins can applied to the service or route level. Some plugins can be applied per consumer, like the rate limit.
+
+During this course, we will learn several kong plugins and how to use them. For a complete list of plugins, we can go to - https://developer.konghq.com/plugins/
+
+On Kong, we can have multiple plugins on the same condition. For example, we can set API keys and rate limit plugins on the alpha service. We will see plugins as examples in this course using a single plugin. So, we will not combine plugins. That way, we can know for sure how to use the plugin.
+
+To start our course for the plugin, please ensure we have set the required services, routes, and consumers in Kong. If we followed all the steps in this course, we should already have them set.
+
+Kong Manager provides plugin screen where we can manage all of the plugins. In the Kong Manager plugin screen, we can view, edit, enable, disable, or even delete each of the plugins. And we can also manage plugins from the service, route, or consumer screens.
+
+
+
+
+33. Services & API for This Course
+==================================
+
+I've provided several services and APIs for this course.
+
+For convenience, you can also download a JSON file containing the Postman collection from the last section of the course, on the lecture with the title Resources and References, and import it to Postman.
+
+To import the JSON file, click import on the top left of the Postman menu and select the file.
+
+The following services are available.
+
+    Alpha: http://<kong-gateway-address>/alpha
+
+    Beta: http://<kong-gateway-address>/beta
+
+    Gamma: http://<kong-gateway-address>/gamma
+
+    Omega: http://<kong-gateway-address>/omega
+
