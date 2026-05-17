@@ -1,1 +1,61 @@
-4 Introducing API Management
+Section 4 Introducing API Management
+====================================
+
+
+Section Content
+---------------
+11. API Management Roles
+
+
+
+
+
+11. API Management Roles
+========================
+
+API Management
+- Creating & publishing API
+- Enforcing isage policies
+- Control access & traffic
+- Collecting and analyzing usage statistics
+- Reporting on performance
+- Gateway (single access point for API consumer)
+
+- Create own code in API is not practical (focus on business value that API delivers)
+- Example of managing public API - Usually, there is some mechanism for accessing API, for example, using a unique API key for each consumer. Also, since the API is public, we should limit the number of requests allowed per minute to avoid denial of service attacks, where one consumer hits the API continuously at a massive amount.
+- Writing API key & rate limit functionalities? - We should keep consistent behavior among our services. Hence, all the written code should use the same logic.
+
+API Management tools
+--------------------
+
+Some are free and other requires licenses. Some of them are
+
+- apigee
+- axway
+- MuleSoft
+- Kong
+- Mashery
+- WSO2 API Manager
+- IBM API Connect
+- tyk.io
+- 3scale by Red Hat
+
+In this course we will focus on KONG installation and Basic Configuration
+	- Free & Enterprice Edition
+	- KONG is build on NGINX
+	- Easy Installation (Docker container)
+	- Requires Data Store to run - PostgreSQL or Cassandra
+	- Scalable & ocnfigurabe for high traffic
+	- Plugins - free & enterprise
+
+
+
+
+
+
+
+
+
+
+
+
