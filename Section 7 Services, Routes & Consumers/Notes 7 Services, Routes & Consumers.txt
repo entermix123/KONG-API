@@ -1,1 +1,275 @@
-7 Services, Routes & Consumers
+Section 7 Services, Routes & Consumers
+======================================
+
+
+Section Content
+---------------
+20. API Documentation for This Section
+21. Services & Routes
+22. Test Services & Routes
+23. Update Services & Routes
+24. Change Kong Port
+24. Change Kong Port
+
+
+
+20. API Documentation for This Section
+======================================
+
+A good API provides documentation. These are the documentations for API we used on this section.
+
+    Kong Admin API - https://developer.konghq.com/api/gateway/admin-ee/3.13/
+
+    QR code API - https://goqr.me/api/doc/
+
+
+
+21. Services & Routes
+=====================
+
+We will use the analogy as follow:
+
+API Manageent			MALL of Restaurants
+------------------------------------------------------------
+API Management Tool (Kong)	Information Delivery Center
+Service				Resaurant
+API				Food
+Routes				Restaurant couriers
+Consumers			Restaurant consumenrs
+
+The architecture of the analogy is presented in api-management-mall-restaurants-analogy.png
+
+The analogu of kong API management is presented in kong-api-architecture.png
+
+
+
+Create QR Code for our Kong gateway:
+------------------------------------
+In Postman open Service/Service-Add request/Body. We will see the required fields for this request. Send the request to create the service.
+
+----------------------------------------------------
+{
+	"url" : "https://api.qrserver.com",
+	"name" : "qr",
+	"retries" : 3,
+	"connect_timeout" : 60000,
+	"write_timeout" : 60000,
+	"read_timeout" : 60000
+}
+----------------------------------------------------
+
+If the service is created we will receive response with code 200 OK. We can check the service as sending GET request called 'Service - List All'. It will return one item with its details.
+
+
+Create Route for the service
+----------------------------
+
+Open and send POST request called 'Route - Add by Service'. 
+In the Params tab we should have Path Variable with key 'service-name' and value 'qr'.
+In the 'body' tab we should have the protocols handled, the path of the service and all methods:
+----------------------------------------------------
+{
+    "protocols": [
+        "http",
+        "https"
+    ],
+    "paths": [
+        "/qr"
+    ],
+    "methods": []
+}
+----------------------------------------------------
+
+When we send the request we will get information about the created route. We will test it in the next lecture.
+
+
+
+
+
+22. Test Services & Routes
+==========================
+
+To test the service open browser or Postman and access the address 'https://api.qrserver.com'
+
+We will get this message:
+----------------------------------------------------
+en: malformed API request. Please consider the API documentation at
+    http://goqr.me/api/doc/
+
+
+de: ungültige API-Anfrage. Bitte beachten Sie die API-Dokumentation
+    unter http://goqr.me/de/api/doc/
+----------------------------------------------------
+
+We will fix the request address later.
+
+
+We can access the same address with Kong on browser address 'http://localhost:8000/qr'
+
+See the documentation to create QR Code - https://goqr.me/de/api/doc/create-qr-code/
+
+We can create QR Code with this simple data parameter - http://localhost:8000/qr/v1/create-qr-code?data=Hello
+This will generate the QR Code.
+
+
+HTTP
+----
+We can access Kong on 2 different addresses
+	- http://kong-address:8001		# admin portal
+	- http://kong-address:8000		# User Proxy
+
+We use the QR code to access the User Proxy address
+
+
+HHTPS
+-----
+For https traffic Kong API Gateway provides port 8443. Default Kong installation includes self-signed SSL certificate.
+	- https://kong-address:8443
+
+In production environment we should purchase and use real SSL certificate.
+
+Enable Postman settings/Generatl 'SSL certificate verification'
+
+We can test the HTTPS address with rrequest QR Code/Generate QR Code HTTPS. Note that the address is HTTPS and the port is 8443.
+We will receive error 'SSL Error:Self signed certificate'.
+
+If we disable settings/Generatl 'SSL certificate verification' and send the request again we will receive the QR Code.
+
+
+
+
+
+23. Update Services & Routes
+============================
+
+We can change the parameters in the user address to change the application called. The consumer do not need to know about the changes. The consumer communicate only with Kong gateway.
+
+Update the service address with request from the provided postamn collection Service/PATCH Service - Update
+
+In the 'body' we set address of the gamma application:
+----------------------------------------------------
+{
+	"url" : "http://gamma:9003"
+}
+----------------------------------------------------
+
+Send the request. We will receive response with code 200 OK. This mean that the service is updated.
+
+Check the service on http://localhost:8000/qr/v1/create-qr-code?data=Hello
+We can see that the QR Code now is in red color.
+
+
+We can create multiple routes with different version of the application. Then we inform consumers that there is new application. When all consumers start to use the new application we can degrade the old application version. This is simple example scenarion presented in update-service.png. In real life case the routings are more complex.
+
+
+
+24. Change Kong Port
+====================
+This change is optional but is better to use it for the local machine network ports.
+
+We can change port on docker-compose.yaml file in line 73 and 74:
+----------------------------------------------------
+...
+    ports:
+      - "${KONG_INBOUND_PROXY_LISTEN:-0.0.0.0}:80:8000/tcp"		# changed from 8000:8000
+      - "${KONG_INBOUND_SSL_PROXY_LISTEN:-0.0.0.0}:443:8443/tcp"	# changed from 8443:8443
+...
+----------------------------------------------------
+
+Navigate to the docker compose file location and restart the Kong container to apply the changes
+	terminal --> docker-compose stop kong
+	terminal --> docker-compose up -d
+
+
+Change the addresses in the Postman colllection variables
+
+Variable			Value
+--------------------------------------------------------
+kong.gateway			http://localhost			# removed ':8000'
+
+kong.gateway.ssl		https://localhost:443			# from ':8443'
+--------------------------------------------------------
+
+Test the http service again with requests Course Content / QR Code / Generate QR Code
+
+Test the https service again with requests Course Content / QR Code / Generate QR Code HTTPS
+
+For both cases we should receive the red QE Code. This mean that the changes are successfuly applied.
+
+
+
+
+
+25. Kong Consumers
+==================
+
+Create gamma service:
+---------------------
+Send request Course Content / Service / POST Service - Add with the body as shown below:
+
+----------------------------------------------------
+{
+	"url" : "http://gamma:9003",
+	"name" : "gamma",
+	"retries" : 3,
+	"connect_timeout" : 60000,
+	"write_timeout" : 60000,
+	"read_timeout" : 60000
+}
+----------------------------------------------------
+
+We should get response 201 Created. This mean that we have successfully created new service on the configured address.
+
+
+
+Add route to Gamma app:
+-----------------------
+Send request with  Course Content / Route / POST Route - Add by Service with the following configuration:
+
+1. Params / Path Variables: Key: 'service-name', Value: 'gamma'
+2. Body tab:
+----------------------------------------------------
+{
+    "protocols": [
+        "http",
+        "https"
+    ],
+    "paths": [
+        "/gamma"
+    ],
+    "methods": []
+}
+----------------------------------------------------
+
+We should receive response status 201 Created. 
+
+
+Create our first user in Postman
+--------------------------------
+Send request Course Content / Consumer / POST Consumer - Add
+
+In the body tab we have information consumer name and custom ID:
+----------------------------------------------------
+{
+	"username" : "helen",
+	"custom_id" : "U025"
+}
+----------------------------------------------------
+
+We should receive response with code 201 Created.
+In the response body we should see another ID field. Custom ID can be used for connection to another database and it is not mandatory.
+----------------------------------------------------
+{
+    "username": "helen",
+    "custom_id": "U025",					# custom ID
+    "id": "875262bf-116f-46a6-81fb-37b92f75d2b1",		# generated ID
+    "created_at": 1770712421,
+    "updated_at": 1770712421,
+    "tags": null
+}
+----------------------------------------------------
+
+
+
+
+
