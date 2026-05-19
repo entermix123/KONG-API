@@ -1,1 +1,739 @@
 Section 11 Kong Plugin Examples Authentication
+==============================================
+
+
+Section Content
+---------------
+34. Basic Authentication
+35. Key Authentication
+36. Tips: Key Authentication
+37. HMAC Authentication
+38. Tips: HMAC and Kong
+39. JWT Authentication
+40. Oauth2
+
+
+
+
+
+34. Basic Authentication
+========================
+Basic authentication is a mechanism where we need a username and password to access API. Let's add basic authentication to all services, so this will be a global plugin. 
+
+To add a global plugin from Kong Manager (http://localhost:8002/plugins), click on the Plugins menu and the Add Plugin button. Select Basic Authentication / Install.
+
+Now when we try to send request in Postman / Course Content / REST API Services / GET Alpha Status we receive response with conde 401 Unauthorized. 
+
+Configure the cousemrs with username and password
+	- Go to http://localhost:8002/consumers
+	- Helen / Credentials / + New Basic Auth Credentials 
+		- Username: helen123
+		- Password: password123
+		- Create
+
+Configure the requests authorization tab - Postman / Course Content / REST API Services / GET Alpha Status / Authorization
+	- Auth Type: Basic Auth
+	- Username: helen123
+	- Password: password123
+
+Send the request. We should receive response with status code 200 OK
+
+As we can see here, basic authentication is added as an "Authorization" header on the request. This authentication string is the base64 encoded form of username and password, separated by a colon (:).
+
+
+Delete the plugin from Kong Manager (http://localhost:8002/plugins), click on the Plugins menu and select Basic Authentication / Delete Plugin
+
+
+
+
+
+35. Key Authentication
+======================
+
+Key authentication is a mechanism where we need a token, also called an API key, to access API. This API key is a string that is specific to a consumer.
+
+Let's add key authentication to the alpha service. So this will work only on alpha. To add a plugin to a specific service, click on the menu Services, open the service we want to add the plugin - in this case, alpha and go to the plugin section. 
+
+Add the plugin here, and select authentication / Key authentication. Configure the fllowing:
+	- key_in_header
+	- key_in_query
+	- Add another key_name: token
+	- run_on_preflight
+	- Install
+
+Now when we try to send request in Postman / Course Content / REST API Services / GET Alpha Status we receive response with conde 401 Unauthorized. 
+
+Configure the cousemrs with API Key
+	- Go to http://localhost:8002/consumers
+	- Helen / Credentials / + New Key Auth Credentials
+		- Create
+
+The Key will be generated autimatically. Copy the Key and set it in the request.
+
+Configure the requests authorization tab - Postman / Course Content / REST API Services / GET Alpha Status / Params
+	- Key: apikey, Value: key_value
+
+!!! Sending the API key in the request parameter is not a good practice since the browser history will save the request along with the API key, which should be secret. The alternative is to add a key to the header. !!! 
+
+When we send the requests we should receive response with status code 200 OK
+
+Turn off the query parameter in the user request.
+
+We can use token key (we have configured) request Postman / Course Content / REST API Services / GET Alpha Fast Response / Params
+	- Key: token, Value: key_value
+
+When we send the request we should receive response with status code 200 OK
+
+This API key plugin only works on alpha service. So, if we access the beta without any API key, it will still work.
+
+Disable the plugin from alpha service and the api key credentials in the consumer 'helen'.
+
+Passwords, security tokens, and API keys should not appear in the URL (as query parameters), as this can be captured in web server logs, which makes them easy to steal.
+
+So, the API key should be submitted on the request body or request header.
+--------------------------------------------------------------------------
+
+
+
+
+36. Tips: Key Authentication
+============================
+Where to put the API Key?
+
+Kong provides the capability to put an API key on
+
+    query parameter
+
+    header
+
+    request body
+
+See Kong hub (https://developer.konghq.com/plugins/key-auth/) documentation for further information.
+
+
+Which one should your consumer put the API key on upon submitting a request?
+
+Passwords, security tokens, and API keys should not appear in the URL (as query parameters), as this can be captured in web server logs, which makes them easy to steal.
+
+So, the API key should be submitted on the request body or request header.
+--------------------------------------------------------------------------
+
+
+
+
+37. HMAC Authentication
+=======================
+
+HMAC or hash-based message authentication code is like a "signature" sent with some data. The HMAC is used to verify that the data has not been altered or replaced.
+
+Let's add HMAC authentication to the beta service. In this example, we will learn how to add HMAC validation based on the HTTP Date header and HTTP request target. We will generate an HMAC signature using the SHA-256 algorithm and a secret key and use this signature as Authentication - HMAC-authentication.png
+
+The secret key is given to the consumer, which must be used to generate valid signature. Each consumer should have a different secret key. 
+
+Kong has specific rules for adding an HMAC signature. We must add an "Authorization" or "Proxy-Authorization" header in the following format:
+hmac [space] username and its value [comma] algorithm and its value [comma] headers to be used for a signature generation [comma] the base64 HMAC signature generated using the secret key - HMAC-authentication-format.png
+
+Let's see the value in more detail.
+
+The value consists of 5 elements in sequence. The first is string "hmac" followed by space. The other four are key-value pairs, with an equals sign as the separator between key and value. All values must be between double quotes. These key-value pairs must be exactly four pairs defined by the Kong plugin in sequence. A comma separates each pair.
+
+The first pair is username as key and consumer HMAC username as value. In this example, we use "helen123"
+
+The second pair is an algorithm used to generate the HMAC signature. Since we use the SHA-256 algorithm, the value is "hmac-sha256"
+
+The third is a list of HTTP headers that will be used to generate a signature along with the secret key. Each HTTP header in value is separated by space. We will use two HTTP headers here: "Date", a standard HTTP header, and "Dummy", a custom HTTP header. The request-target is not an HTTP header but a metadata HTTP request, which begins with a lowercase HTTP method followed by the Request-URI and query parameters
+
+The fourth pair is the HMAC signature, generated by hashing string based on the third key-value pair using the algorithm in the second pair, with the secret key given to the username in the first pair using the algorithm in the second pair, with the secret key given to the username in the first pair - HMAC-authentication-format-2.png
+
+The hmac string, first and second pair, is easy to understand. Let's go to the third and fourth pair for more detail. In HTTP, we can add a request header. The header has a key and value, as we will see later in Postman. There are standard HTTP headers, and we can also add our header. The HMAC string will be generated using the key and value of headers in sequence, which are defined in the third pair.
+
+So, in this example, we must provide a "Date" header, a standard HTTP header. The date header must follow a particular format like in HMAC-authentication-format-data-header.png
+
+We also need to provide a "Dummy" header, which is a custom header. Since this is custom, no specific format is required. The request-target is part of the HTTP request. It has a specific format and contains two parts separated by space. Those two parts are the lowercase HTTP method and Request URI, including any query parameters. HMAC signature can be generated by hashing the signing string on the "headers" pair. - HMAC-authentication-format-dummy-header.png
+
+So, in this example, we must combine the date and dummy headers and the HTTP request target. All must be in the correct sequence as defined on the "headers" pair. The rules for constructing signing strings are :
+
+- If the header name is not "request-target", append the lowercase header name followed by an ASCII colon ( : ) and an ASCII space ( ). Then, put the header value. If the value is not the last, append an ASCII newline (\n). So, in this case, we add a newline and append a second header, which is a "dummy". If the header name is @request-target, append the string @request-target followed by an ASCII colon and an ASCII space. Then, put the lowercase HTTP method, followed by space, and request URI, including any query parameters. The signature is generated as HMAC using an algorithm in this case, SHA-256, with the secret key given to the related username, in this case, "helen123". For example, the secret key is "456secret". Generate HMAC signature as base64 encode. For example, we will add hmac signature to access the beta. - HMAC-authentication-format-example.png
+
+
+Add the plugin to a specific service
+------------------------------------
+- Go to http://localhost:8002/services / beta / Plugins / + New Plugin, search for 'hmac' and add it.
+	- algorithm: hmac-sha256
+	- clock_skew: 3600 		# HMAC authentication is valid for one hour against the current time.
+	# Clock skew is like validation against the current time. 
+	# Any request with a higher or lower date value outside the clock skew parameter will be rejected.
+	- enforce_headers: 		# means that atleast this headers must exist in API request
+		- date
+		- dummy
+	- validate_requests_body	# cehck the checkbox
+	- Install
+
+Give a key to specific consumer
+-------------------------------
+- Go to http://localhost:8002/consumers / helen / Credentials / + New HMAC Credentials
+	- Username: helen123
+	- Secret: 456secret
+	- Create
+
+Test the authentication by sending request Postman / Course Content / REST API Services / GET Beta Fast Response we receive response with conde 401 Unauthorized. 
+
+So, how do we generate an HMAC signature? Most programming languages provide a library to do this. But since we're using Postman, we will use an online generator. There are few online HMAC generators, but for our case, we need the one that treats newline correctly and can produce results as base64 encoded. We can use this one - https://dinochiesa.github.io/hmachash/index.html
+
+Set the calculator with the following configs:
+REMOVE THE COMMENTS WHEN USE!
+------------------------------------------
+function: sha-256					# hashing algorithm
+hmac?: checked						# checked
+secret_key: 456secret					# consumer secret
+key_config: UTF-8					
+message:
+date: Tue, 10 Feb 2026 14:51:00 GMT			# calculate GMT time for your region
+dummy: Kong
+@request-target: get /beta/api/v1/fast			# target request for beta fast response
+------------------------------------------
+We can copy the result for Base64 and use it in the beta 
+
+
+Configure Postman / Course Content / REST API Services / GET Beta Fast Response / Headers
+	- Date: Tue, 10 Feb 2026 14:51:00 GMT
+	- Dummy: Kong
+	- Authorization: hmac username="helen123", algorithm="hmac-sha256", headers="date dummy @request-target", signature="replace_me"
+
+Send the request and we should receive response with status code 200 OK
+
+
+We used a 1-hour clock skew in the demonstration for simplicity since you might need time to process the data. In real life, the clock skew must be small, like 1 minute, so the HMAC string will be valid only for a short duration. A short clock skew duration is recommended for security reasons, so when the attacker intercepts the request, the HMAC string can only be used for a short time. 
+
+A more secure HMAC authentication using Kong is when we also validate the request body. For example, if we have a JSON request body like this, then we can include this JSON body as an HMAC component but it is a little complicated. First, we must convert the JSON into a single line. Then, hash the single-line JSON using the SHA256 algorithm and convert the hash output to base64 encoding. When calling the API, we need to add an HTTP request header with the key "Digest." where the value is the base64-encoded hash from the JSON body. - HMAC-authentication-body-validation.png
+
+We still need to add an Authorization request header with the same format as explained before. The difference is that we must now add a digest to the header list on the third pair. In the fourth pair, the signature must include the digest HTTP header. So, the signing string in this example became like in HMAC-authentication-body-validation-2.png. 
+
+We will use several online tools for the demo to convert the JSON body, hash it, and calculate the signature string. 
+
+Note that these online tools are only for helpers, and might not be available when you purchase the course. In real life, doing these steps usually involves using a programming language but for the simplicity of the course, we will use the online tools.
+
+
+We must convert JSON to a single line on https://codebeautify.org/json-to-one-line
+------------------------------------------
+{
+    "key": 9999,
+    "foo": "bar",
+    "baz": true
+}
+------------------------------------------
+Result: {"key":9999,"foo":"bar","baz":true}
+
+Then we must hash the JSON line on https://emn178.github.io/online-tools/sha256.html
+result: 86420d65e21d0476a062dc14a26b151a8f25ece56ce968ff4dbb0808aae40182
+
+Convert the sha-256 hex to base64 encoded value here - https://base64.guru/converter/encode/hex
+result: hkINZeIdBHagYtwUomsVGo8l7OVs6Wj/TbsICKrkAYI=
+
+
+use this to generate HMAC - https://dinochiesa.github.io/hmachash/index.html
+
+Set the calculator with the following configs:
+REMOVE THE COMMENTS WHEN USE!
+------------------------------------------
+function: sha-256					# hashing algorithm
+hmac?: checked						# checked
+secret_key: 456secret					# consumer secret
+key_config: UTF-8					
+message:
+date: Tue, 10 Feb 2026 15:21:00 GMT			# calculate GMT time for your region
+dummy: Kong
+digest: SHA-256=hkINZeIdBHagYtwUomsVGo8l7OVs6Wj/TbsICKrkAYI=
+@request-target: put /beta/api/v1/echo-body			# target request for beta fast response
+------------------------------------------
+We can copy the result for Base64 and use it in the beta 
+
+
+We will use the beta on endpoint echo body - Postman / Course Content / REST API Services / PUT Beta Echo Body. 
+	- Key: Date		Value: Tue, 10 Feb 2026 14:51:00 GMT
+	- Key: Dummy		Value: hmac with body
+	- Key: Digest		Value: SHA-256=hkINZeIdBHagYtwUomsVGo8l7OVs6Wj/TbsICKrkAYI=
+	- Key: Authorization	Value: hmac username="helen123", algorithm="hmac-sha256", headers="date dummy @request-target", signature="replace_me"
+
+Send the request and we should receive response with status code 200 OK
+
+For simplicity, the Postman collection already includes the required headers. The request will be rejected now since we passed the wrong HMAC values.
+
+
+Disable the HMAC Authorization Plugin in Beta service and remove the Credentials fomr consumer 'helen'.
+
+
+
+38. Tips: HMAC and Kong
+=======================
+
+Kong HMAC Common Errors
+
+HMAC signature cannot be verified
+
+Usually, it happens because the Authorization header value is invalid. For example, a lack of double quotes, or a wrong sequence.
+
+
+HMAC signature does not match
+
+Wrong HMAC signature passed on Authorization header
+
+
+HMAC signature cannot be verified, a valid date or x-date header is required for HMAC Authentication
+
+Either you don't provide a Date header, while the headers pair requires it.
+
+Or you provide it but an out-of-clock skew limit. Allowed maximum clock skew is: the absolute value of(current server time - request time on Date), in second.
+
+
+
+
+
+39. JWT Authentication
+======================
+
+JWT is a shorthand for JSON Web Token. JWT is a string consisting of 3 components. A dot separates each component. 
+1st component is the header.
+2nd component is the payload. 
+The 3rd component is the signature.
+
+There are two fields for header JSON object. "typ" which value is "JWT". And "alg" shows the hash algorithm to create the JWT signature component.
+
+In this example, we use HMAC SHA 256 to calculate the signature.The 1st JWT token component is the base64 encode of this JSON object. Payload is a JWT component, which is JSON that contains "claim" data.
+
+Kong currently validates only three "claims": issuer, expired, and not-before. 
+
+The issuer is mandatory; we must fill it with the Kong consumer key. In this example, the issuer is the Kong consumer key, and the expired date is epoch time. We can use online tools like epochconverter.com or time library in most programming languages to calculate epoch time.
+
+The 2nd JWT token component is the base64 encode of this JSON object. 
+
+In the signature component, we hash the first two components of JWT, which are base64(header) and base64(payload). We use (dot) to separate them. This component is hashed using the algorithm in the header part and encrypted using a secret key for specific consumers. Unless someone has the secret key, they can not decrypt this information, so this is where JWT goes secure. In this example, we hash using the HMAC SHA256 algorithm, as defined in the header. The secret key is the Kong consumer key.
+
+JWT token structure presented on picture - JWT-example.png
+
+The 3rd JWT token component is a hashed string encoded in base64. See the website jwt.io for a calculator or list of libraries for many programming languages.
+
+We then need to attach this token as an authorization mechanism. Adding an HTTP "Authorization" header with the "Bearer token" value is a common mechanism.
+
+
+Secure beta service with JWT
+----------------------------
+
+Go to Kong Manager http://localhost:8002/services/ beta / Plugins / + New Plugin / JWT
+	- claims_to_verify: exp		# expiration time of the claim.
+	# This claim identifies the expiration time after which the token must be rejected for processing.
+	- maximum_exipration: 600 	# 600 seconds of token expiry time on the field maximum expiration.
+	- run_on_preflight: checked
+	- Install
+
+For more information on parameters, we can read in Kong Manager or go to the Kong plugin documentation page.
+
+Configure JWT token to consumer
+-------------------------------
+Go to http://localhost:8002/consumers
+	- apolo / Credentials / + New JWT Credentials 
+		- Key: apolokey
+		- Secret: apolosecret
+		- Algorithm: HS256
+		- Create
+
+If we leave the fields empty, Kong will auto generate them.
+
+
+
+Try to send request Postman / Course Content / Beta / GET Beta - Who Am I , we receive response with conde 401 Unauthorized. 
+
+Calculate JWT on https://www.jwt.io/ and go to JWT Encoder tab
+
+Valid Header
+-------------------------------
+{
+  "alg": "HS256",
+  "typ": "JWT"
+}
+-------------------------------
+
+
+Find the epochtime on epochconverter.com take the The current Unix epoch time and add 600 to it to set the 'exp' in the payload
+	- 1770796588 + 600 = 1770797188
+
+Valid payload
+-------------------------------
+{
+  "iss": "apolokey",
+  "exp": 1770797188
+}
+-------------------------------
+
+Copy the JWT_Token
+
+In the request Postman / Course Content / Beta / GET Beta - Who Am I / Authorization add 
+	- Auth Type: 'Bearer token'
+	- Token: JWT_Token 
+
+Send the request and we should receive response with status code 200 OK.
+
+
+JWT specification defines several algorithms used for signing and verifying JWTs:
+
+JWT Algorithms
+--------------
+	- HMAC with SHA-256, SHA-384, and SHA-512 use a shared secret key between the parties involved to generate a hash-based message authentication code (HMAC). The same key is used both to create and verify the signature. Both parties must know the same key. Hence, this algorithm uses a symmetric key. The number 256, 384, or 512 is the key length in bits, The larger the bit length of the hash function, the more secure the algorithm is against brute force and other cryptographic attacks. However, larger key sizes also mean increased computational overhead.
+
+	- RSA with SHA-256, SHA-384, SHA-512 use RSA asymmetric key pairs. The sender uses their private key to sign the JWT, and the recipient uses the sender's public key to verify the signature. This method allows anyone with the public key to verify the JWT but only the sender with the private key can create a valid signature.
+
+	- Elliptic Curve Digital Signature Algorithm with SHA-256 SHA-384 uses elliptic curve cryptography. Like RSA, they are asymmetric but use a different mathematical approach. The sender signs the JWT with their private key, and the recipient uses their public key to verify the signature.
+
+
+JWT Symmetric and asymmetric key algorithms are two different approaches to cryptographic key management each with its strengths and use cases. This table shows the difference between them. - JWT-symmetric-asymmetric.png
+
+
+Elliptic curve asymmetric key in the JWT plugin
+-----------------------------------------------
+
+Generate a private-public key pair - https://mkjwk.org/		(Optional use OpenSSL - https://openssl.org)
+- EC Tab
+	- Curve: P-256
+	- Key Use: Signature
+	- Algorithm: ES256: ECDSA using P-256 and SHA-256
+	- Key-ID: SHA-256
+	- Show X.509: Yes
+	- Generate
+
+We will get a private (Private Key X.509 PEM Format) and public (Publix Key X.509 PEM Format) key pair when we generate the key. A private key is to be stored somewhere secure and not to be shared. A public key can be shared with other parties.
+
+Copy the public and the private keys.
+
+
+Go to http://localhost:8002/consumers / Apolo, delete the previous JWT Plugin and add new one
+	- Key: apolokey-ec
+	- Algorithm: ES256
+	- RSA public-key: public_key
+-----BEGIN PUBLIC KEY-----
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+-----END PUBLIC KEY-----
+	- Create
+
+
+Calculate the JWT signarure with https://www.jwt.io/
+	Choose Algorith: ES256
+
+Valid Header
+-------------------------------
+{
+  "alg": "ES256",
+  "typ": "JWT"
+}
+-------------------------------
+
+Find the epochtime on epochconverter.com take the The current Unix epoch time and add 600 to it to set the 'exp' in the payload
+	- 1770799029 + 600 = 1770799629
+
+
+Valid payload
+-------------------------------
+{
+  "iss": "apolokey-ec",
+  "exp": 1770799629
+}
+-------------------------------
+
+Use the private key we generated:
+
+Sign JWT: Private Key
+-------------------------------
+-----BEGIN PRIVATE KEY-----
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxx
+-----END PRIVATE KEY-----
+-------------------------------
+
+
+Copy the generated JSON WEB TOKEN - JWT_Token.
+
+Go to Postman / Course Content / Beta / GET Beta - Fast Response / Authorization
+	- Got to Headers tab and clear headers from previous examples
+	- Go to Authorization
+		- Auth Type: Bearer Token
+		- Token: JWT_Token
+
+Send the request and we should receive response with status code 200 Ok
+
+
+
+
+
+
+40. Oauth2
+==========
+
+OAuth2 provides a way for apps to gain limited access to protected resources (like bank account balances or any other sensitive information a user might wish to access from an app). But, to get that data, the user does not need to give their login credentials to the app.
+
+
+OAuth 2.0 defines four specific "grant types".
+Access Token - a long string of characters that serves as a credential to access protected resources. An access token usually has limited time and scope.
+
+The diagram may differ depending on the authorization grant, but this is the overall flow. The client application requests authorization from the user, which gives a certain authorization grant and an OAuth credential, usually consisting of the client ID and client secret. The client requests an access token using the given authorization grant, client ID, and client secret. In this case, this authorization server is Kong. Client application hit backend using valid access token through Kong server. The backend itself does not validate the access token, but since the backend is behind Kong, the access token validation is handled by Kong. If the access token is valid, Kong forwards the request to the backend, which in turn gives a response. - OAuth2-overview.png
+
+
+
+There are several grant types on Oauth2.
+	- Authorization code
+	- Implicit
+	- Password
+	- Client Credentials
+
+Let's see each of them.
+	- OAuth2-when-to-use-what.png
+	- OAuth2-when-to-use-what-2.png
+	- OAuth2-when-to-use-what-3.png
+
+
+
+Authorization code flow
+-----------------------
+The authorization code flow is considered the most secure for the Oauth2 flow.
+
+We use application X, which needs read access to our Google Drive. On the application X, we log in using X credentials and access the function that requires Google Drive. At this point, application X needs access to Google Drive API to access our data, which is secured with Oauth2. So the application X opens Google login windows, which is -of course- owned by Google.
+
+So the application X opens Google login windows, which is -of course- owned by Google. We need to log in using the username and password of Google, but application X never knows our Google credential. When we log in using our Google account, some "scope" is required to read access to our Google Drive. This login screen is commonly known as the consent screen for our Google data. By logging in, we, as the resource owner, authorize access for application X to our Google Drive only for reading as defined on the scope.
+
+Application X then gets an authorization code that it can use to negotiate an access token with the authorization server. Application X gets an access token for certain scopes using this authorization code. Since application X has an access token, application X can use this token to communicate with Google API and we can work with application X using Google Drive.
+
+This grant type is highly secure because the application X never handles or sees the user's username or password for the resource server. In this case, application X never sees or handles our Google credentials. This grant type flow is also called "three-legged" OAuth.
+
+To implement this grant, the resource owner, Google, in the example above, must provide a login screen with a certain scope requested. This grant is suitable if we open API to 3rd party application which is not under our control.
+
+Suppose we use the Authorization Code flow in a mobile app or any other application that can't store a client's secret. In that case, we should also use the PKCE (pixie) extension, which protects against other attacks where the authorization code may be intercepted. 
+
+Code presented on OAuth2-authorization-code-flow.png
+
+
+
+
+Implicit Grant Type
+-------------------
+
+The Implicit Grant Type is commonly considered a simplified version of the authorization code and is less secure than the authorization code.In this grant-type flow, the authorization server returns an access token directly when the user is authenticated rather than issuing an authorization code first. 
+
+This flow is intended to be used by user-agent-based clients. For example, single-page applications can't keep a client secret because the application code and storage are easily accessible. 
+
+Password grant flow exchanges a username and password for an access token directly. Since this requires the application to collect the user's password, it must only be used by applications created by the designated service. For example, if we create a native mobile application X and also its backend, use this grant type to get access to API.
+
+In password flow, application X sends username and password to backend X. Backend X validates the credential, and then when the credential is valid, backend X will contact the authorization server to get an access token. With this approach, client ID and client secret can only known by backend X, not embedded in native application code. The native application uses the access token to communicate with the backend API. - OAuth2-implicit-password.png
+
+Alternatively, an application can send a username, password, and OAuth credentials to the OAuth server. The Oauth server then calls the backend API to validate the username and password. If the username and password are valid, the OAuth server gives an access token to the client which in turn can be used to access the API. - OAuth2-implicit-password-2.png
+
+
+Client credentials flow
+-----------------------
+Client credentials flow is the simplest grant type.
+
+In this flow, the application directly exchanges the client ID and client secret with an access token. Then, the API access can use the access token. - OAuth2-client-credentials-flow.png
+
+
+
+Refresh Token
+-------------
+OAuth access token usually has limited validity time. Refresh flow is used to gain a new access token when the previous one has expired. That's why refresh flow is sometimes not considered as OAuth flow.
+
+A refresh token is available on the Authorization Code flow. A refresh token usually has a longer validity period compared to an access token. When the access token expires and we need a new access token, we can use a refresh token to obtain a new access token, without submitting the client ID and client secret.
+
+
+Set oauth authentication on gamma service
+-----------------------------------------
+Go to Kong Manager http://localhost:8002/services/ gamma / Plugins / + New Plugin / OAuth2 2.0 Authentication
+	- client credentials: checked
+	- implicit: checked
+	- authorization_code: checked
+	- provision_key: provisionkey
+	- Install
+
+
+Configure consumer credentials to Apolo
+---------------------------------------
+Go to http://localhost:8002/consumers / Apolo / Credentials / + New OAuth 2.0 Credentails
+	- Name: apolo-app
+	- Client_id: apolo-clientid
+	- Client_secret: apolo-clientsecret
+	- Add Redirect URI: http://localhost:8000/alpha/api/v1/who-am-i
+	- Create
+
+
+Try to send request Postman / Course Content / REST API Services / Gamma / GET Gamma Status we will receive response with status code 401 Unauthorized
+
+To get access token we use request Postman / Course Content / OAuth Demo - Gamma / POST Get Client Credentials Token
+	- Notice that to access the oauth2 endpoints, we must use the Kong HTTPS gateway which means using the HTTPS protocol on the SSL port.
+	- See the request body. Here we need to define client_credentials as a grant type and provide a valid client ID and client secret.
+-----------------------------------------------
+{
+    "client_id" : "apolo-clientid",
+    "client_secret" : "apolo-clientsecret",
+    "grant_type" : "client_credentials"
+}
+-----------------------------------------------
+
+When we send the request we will get response with status code 200 OK and body with the access_token along with how long this token will be valid. In this example - 2 hours. Copy the token.
+-----------------------------------------------
+{
+    "token_type": "bearer",
+    "access_token": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "expires_in": 7200
+}
+-----------------------------------------------
+
+
+Go to Postman / Course Content / REST API Services / Gamma / GET Gamma Fast Response / Authorization
+	- Auth Type: Bearer Token
+	- Token: oauth_token
+
+When we sned the reuqest we should receive response with status code 200 OK
+
+Behind the screen, this step will add an authorization header with value bearer and access token. We can see this in Postman 'code / cURL' menu in top right side of the request page.
+
+
+
+
+Implicit flow
+-------------
+
+Open Postman / Course Content / OAuth Demo - Gamma / Implicit / POST Get Implicit Token
+	- Body:
+----------------------------------------------
+{
+    "client_id": "apolo-clientid",
+    "provision_key": "provisionkey",
+    "authenticated_userid": "test-username",
+    "response_type": "token"
+}
+----------------------------------------------
+
+In the request body, we must provide a valid client ID. We use the provision key defined previously on the Oauth plugin, Notice that we don't need to give client secret. We must add a response_type parameter with the value "token" for this flow. We can use any string for the authenticated user ID for this example.
+
+When we send this request, we will get a response containing a redirect URI and the "access_token" parameter. Copy the "access_token" value.
+----------------------------------------------
+{
+    "redirect_uri": "http://localhost:8000/alpha/api/v1/who-am-i#access_token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx&expires_in=7200&token_type=bearer"
+}
+----------------------------------------------
+
+Go to Postman / Course Content / REST API Services / Gamma / GET Gamma Fast Response / Authorization
+	- Auth Type: Bearer Token
+	- Token: access_token
+
+When we sned the reuqest we should receive response with status code 200 OK
+
+
+
+
+
+
+Authorization code flow
+-----------------------
+
+
+Step 1
+------
+Go to Postman / Course Content / OAuth Demo - Gamma / Authorization Code / POST 01 - Get Authorization Code
+
+Body:
+----------------------------------------------
+{
+    "client_id": "apolo-clientid",
+    "provision_key": "provisionkey",
+    "authenticated_userid": "test-username",
+    "response_type": "code"
+}
+----------------------------------------------
+
+We need to request an authorization code by accessing this API. In the request body, we must provide a valid client ID. Additionally, we use the provisioning key defined previously on the Oauth plugin, We must add a response_type parameter with the value "code" for the authorization code flow. We can use any string for the authenticated user ID for this example.
+
+When we send this request, we will get a response containing a redirect URI and the "code" parameter.
+
+Result body:
+----------------------------------------------
+{
+    "redirect_uri": "http://localhost:8000/alpha/api/v1/who-am-i?code=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+}
+----------------------------------------------
+Copy the code from the response.
+
+
+Step 2
+------
+Go to Postman / Course Content / OAuth Demo - Gamma / Authorization Code / POST 02 - Get Token
+
+Body:
+----------------------------------------------
+{
+    "client_id": "apolo-clientid",
+    "client_secret": "apolo-clientsecret",
+    "grant_type": "authorization_code",
+    "code": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+}
+----------------------------------------------
+
+
+Result body:
+----------------------------------------------
+{
+    "token_type": "bearer",
+    "access_token": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",		# access token
+    "refresh_token": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",	# refresh token
+    "expires_in": 7200
+}
+----------------------------------------------
+
+We can use the access token as an Authorization bearer when accessing gamma.
+
+
+
+
+Step 3
+------
+Postman / Course Content / REST API Services / GET Gamma - Fast Response/ Authorization
+	- Type Auth: Bearer Token
+	- Token: access_token
+
+When we send the request we should receive response with status code 200 OK
+
+
+
+
+Step 4 - Optional
+-----------------
+
+As for the refresh token, this can be used to obtain a new token. See the request body, where we use the "refresh_token" flow and give the refresh token value, not the client id or client secret.
+
+Go to Postman / Course Content / OAuth Demo - Gamma / Authorization Code / POST 03 - Refresh Token
+----------------------------------------------
+{
+    "client_id": "apolo-clientid",
+    "client_secret": "apolo-clientsecret",
+    "grant_type": "refresh_token",
+    "refresh_token": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+}
+----------------------------------------------
+
+
+Result body:
+----------------------------------------------
+{
+    "token_type": "bearer",
+    "access_token": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",		# new access_token
+    "refresh_token": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",	# new_refresh token
+    "expires_in": 7200
+}
+----------------------------------------------
+
+
+Test the new access token with (step 3) Postman / Course Content / REST API Services / GET Gamma - Fast Response/ Authorization
+	- Type Auth: Bearer Token
+	- Token: new_access_token
+
+When we send the request we should receive response with status code 200 OK
+
+
+
+
