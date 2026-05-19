@@ -1,1 +1,151 @@
 Section 12 Kong Plugin Examples Security
+========================================
+
+
+Section Content
+---------------
+41. Bot Detection
+42. Tips: Kong Regular Expression
+43. IP Restriction
+
+
+
+
+41. Bot Detection
+=================
+
+Example 1
+---------
+
+Kong provides a plugin to prevent access from common bots. Kong can check the User-Agent HTTP request header and block particular user agents. The bot-detection plugin provides a negative security model.
+
+It defines a "denylist" of elements that are not allowed to access a resource while allowing everything else. The "allowlist" in the bot-detection plugin is an extension of this model. Elements found in the allowlist are explicitly allowed, even if they also match the "denylist" (for example, match regular expressions in "denylist").
+
+Let's try a simple example. We will denylist access to our API from Postman. Postman will automatically send a User-Agent HTTP header, which is started with the String "Postman." Hence, we will deny access from any user-agent that started with Postman. We will denylist anything that starts with "Postman"
+
+
+Go to Kong Manager / Plugin Page (http://localhost:8002/plugins) / + New Plugin / Bot Detection
+	- deny / + Add
+		- ^Postman	# Any user agent started with "Postman" will be forbidden at this point.
+	- Install
+	
+Try borser to access alpha application on 
+	- http://localhost/alpha/actuator/health 
+	(http://localhost:8000/alpha/actuator/health if docker-compose is not modified in section 7/24)
+	or with admin on:
+	- http://localhost:8001/upstreams/alpha-upstream/health
+
+Test request Postman / Course Content / REST API Services / GET Alpha Status. We should get response with code status 403 Forbiddern
+
+Delete Bot Detection plugin.
+
+
+
+
+Example 2
+---------
+Let's try another example. 
+
+We will denylist access to our API from Firefox but allow access from Chrome. Both Firefox and Chrome user agents start with "Mozilla." But Chrome also has the string "Chrome" somewhere in the middle of the User Agent String.
+
+Note that this is an oversimplified example since browser like Microsoft Edge also has the string "Chrome", and even the user agent itself can be different for each version of the browser. But this should give us enough understanding of the bot detection plugin.
+
+Denylist anything that starts with "Mozilla."
+---------------------------------------------
+Go to Kong Manager / Plugin Page (http://localhost:8002/plugins) / + New Plugin / Bot Detection
+	- allow / + Add
+		- [Cc]hrome
+	- deny / + Add
+		- ^Mozilla	# Any user agent started with "Mozilla" will be forbidden at this point.
+	- Install
+
+
+Firefox
+-------
+We will use firefox to access our alpha application on http://localhost/alpha/actuator/healt and we should get:
+Error
+Forbidden.
+request_id: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+
+Chrome
+------
+When we use hrome with the same address - http://localhost/alpha/actuator/healt  we should receive:
+{"status":"UP","groups":["liveness","readiness"]}
+
+
+Postman
+-------
+We can send request Postman / Course Content / REST API Services / GET Alpha Fast Response and receive response status code 200 OK
+
+In Headers tab we can add additional dummy header like Mozilla and test the restriction
+	- Key: User-Agent
+	- Value: Mozilla-Dummy
+
+We can send request we should receive response with status code 403 Forbidden
+
+
+Delete Bot Detection plugin.
+
+
+
+
+42. Tips: Kong Regular Expression
+=================================
+
+Kong uses Rust regular expression for regular expression.
+
+This course does not cover regular expression or PCRE. There are a lot of free articles or tutorials for that. However, here are some basic resources:
+
+    If you're not familiar with regular expressions, you can read here - https://en.wikipedia.org/wiki/Regular_expression
+
+    Read here (https://docs.rs/regex/latest/regex/) about Rust Regular Expression
+
+
+
+
+43. IP Restriction
+==================
+
+IP restriction plugin provides either allowlist or denylist rule, but they are mutually exclusive which means we can only select one in each configuration.
+
+In allowlist, we allow access from certain IP addresses and reject everything else. - kong-ip-restriction-allow-list.png
+
+This behavior is called a positive security model. For example, if we put 8.8.8.3 as the only item on the allowlist only that IP can access API, while the others are blocked.
+
+On the other hand, denylist use negative security model. If we deny one IP, the other IP addresses are allowed. So if we denylist 8.8.8.3, only that IP that can NOT access API, the other IP will work fine - kong-ip-restriction-denylist.png
+
+IP address expression to be used on allowlist or denylist can be a specific IP address, or using CIDR notation. If you’re unfamiliar with CIDR notation, it is a notation that can be used to specify the IP address range.
+
+
+Create a denylist IP address for omega
+--------------------------------------
+Open Kong Manager http://localhost:8002/services/ omega / Plugins / + New Plugin / IP restriction
+	- deny / + Add
+		- 39.8.100.2		# any traffic from this IP will be blocked
+		- 39.8.0.0/16		# CIDR notation to block any traffic from IPs
+	- Install
+	
+Delete the Plugin for nect examples
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
