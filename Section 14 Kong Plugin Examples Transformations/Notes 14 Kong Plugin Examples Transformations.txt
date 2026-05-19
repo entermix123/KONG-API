@@ -1,1 +1,302 @@
 Section 14 Kong Plugin Examples Transformations
+===============================================
+
+
+Section Content
+---------------
+49. Request Transformer
+50. Response Transformer
+51. Correlation ID
+
+
+
+
+
+49. Request Transformer
+=======================
+
+This plugin will transform the request sent by a client on Kong before hitting the upstream service. So, the upstream service will get a modified request. We can change the HTTP method. For example, the original request is using POST but we transform it so the upstream service request is PUT. We can remove, rename, replace, add, or append request body, headers, or query string. - request-transformer.png
+
+Refer to the Kong plugin documentation page for a detailed explanation of removing
+
+The following sample is quite simple and will show basic usage.
+
+Test Provided Request
+---------------------
+Use request Postman / Course Content ? REST API Serives / Alpha / POST Alpha Echo
+In Params tab we have configured 2 Query Params
+	- Key: q-dummy-one
+	- Value: q-value-one
+	- Key: q-dummy-two
+	- Value: q-value-two
+
+In Headers tab we have additional Header configured
+	- Key: x-dummy
+	- Value: x-value
+
+We have configured body as follow:
+--------------------------------
+{
+	"test" : "kong"
+}
+--------------------------------
+
+When we send the request we receive response with status code 200 OK
+
+Request body is:
+{
+	"test" : "kong"
+}
+
+-----------------------------------------------------------------------
+HTTP request headers are:
+host : alpha:9001
+connection : keep-alive
+x-forwarded-for : 172.1.1.1
+x-forwarded-proto : http
+x-forwarded-host : localhost
+x-forwarded-port : 8000
+x-forwarded-path : /alpha/api/v1/echo
+x-forwarded-prefix : /alpha
+x-real-ip : 172.1.1.1
+x-kong-request-id : 3c7cdb75ecb09b4657ea61004cf21d4e
+content-length : 20
+content-type : application/json
+x-dummy : x-value
+user-agent : PostmanRuntime/7.51.1
+accept : */*
+cache-control : no-cache
+postman-token : 5aaa536b-e1a6-4ded-ad16-806bfab6702a
+accept-encoding : gzip, deflate, br
+
+
+-----------------------------------------------------------------------
+HTTP query params are:
+q-dummy-one=q-value-one&q-dummy-two=q-value-two
+
+
+
+
+Configre Request Transformer Plugin in  Alpha Service
+-----------------------------------------------------
+
+Go to Kong Manager http://localhost:8002/services / Alpha / Plugins / + New Plugin / Request Transformer
+	- remove.querystring: q-dummy-one			# remove query param
+	- rename.querystring: q-dummy-two:q-dummy-ten		# rename query param
+	- replace.headers: x-dummy:x-new-value			# replace header
+	- add.body: source:kong					# add body
+	- add.headers: x-dummy-kong:x-kog-value			# add header
+	- append.body: test:king
+	- Install
+
+
+Send request Postman / Course Content ? REST API Serives / Alpha / POST Alpha Echo again
+
+Request body is:
+{"source":"kong","test":["kong","king"]}					# added body
+
+-----------------------------------------------------------------------
+HTTP request headers are:
+host : alpha:9001
+connection : keep-alive
+x-forwarded-for : 172.1.1.1
+x-forwarded-proto : http
+x-forwarded-host : localhost
+x-forwarded-port : 8000
+x-forwarded-path : /alpha/api/v1/echo
+x-forwarded-prefix : /alpha
+x-real-ip : 172.1.1.1
+x-kong-request-id : 0dce0f54c9f00d3709055c7a56f2cc3f
+content-length : 40
+content-type : application/json
+x-dummy : x-new-value								# changed value
+user-agent : PostmanRuntime/7.51.1
+accept : */*
+cache-control : no-cache
+postman-token : b2a449ab-d7e3-4c8b-826b-2dc9a57db481
+accept-encoding : gzip, deflate, br
+x-dummy-kong : x-kog-value							# added headers
+
+
+-----------------------------------------------------------------------
+HTTP query params are:
+q-dummy-ten=q-value-two								# modified params
+
+
+Remove hte Plugin for next lection.
+
+
+
+
+
+50. Response Transformer
+========================
+
+This plugin will transform the response sent by the upstream service on Kong before returning the response to the client. So the consumer will get a modified response We can remove, replace, add, or append response body or headers. Note that the response body to be modified must be in JSON format. - response-tranformer.png
+
+Refer to the Kong plugin documentation page for a detailed explanation of removing, replacing, or other transformations.
+
+Send provided request Postman Course Content / REST API Services / Alpha / GET Alpha Random Employee
+
+Response body:
+------------------------------------
+{
+    "email": "ares@athena.com",
+    "name": "Ares",
+    "salary": 9590
+}
+------------------------------------
+
+
+
+Configure Response Tranformer Plugin
+------------------------------------
+
+Go to Kong Manager http://localhost:8002/services / Alpha / Plugins / + New Plugin / Response Transformer
+	- remove.json: salary
+	- replace.json: email:customer.service@olympus.com
+	- add.headers: x-type:Greek Gods
+	- add.json: 
+		- power:immortal
+		- age:9999
+	- append.json: power:srtong
+	- Install
+
+
+
+Send provided request again Postman Course Content / REST API Services / Alpha / GET Alpha Random Employee
+
+Response body:
+------------------------------------
+{
+    "age": "9999",
+    "name": "Artemis",
+    "power": [
+        "immortal",
+        "srtong"
+    ],
+    "email": "customer.service@olympus.com"
+}
+------------------------------------
+
+
+Delete the Plugin for the next lection.
+
+
+
+
+
+
+51. Correlation ID
+==================
+
+This plugin will transform the request and response by adding a new header. The new header will be passed along from Kong to the backend service and sent back to the client response. The new header can be used to track one request to one response.
+
+The common case for this is for logging.
+
+The client can send a request through Kong, where the backend logs the required items, using correlation ID as the key - correlation-id.png
+
+
+
+Send request Postman / Course Content / REST API Services / Alpha / POST Alpha Echo
+We receive response with code status 200 OK
+
+Request body is:
+{
+	"test" : "kong"
+}
+
+-----------------------------------------------------------------------
+HTTP request headers are:
+host : alpha:9001
+connection : keep-alive
+x-forwarded-for : 172.1.1.1
+x-forwarded-proto : http
+x-forwarded-host : localhost
+x-forwarded-port : 8000
+x-forwarded-path : /alpha/api/v1/echo
+x-forwarded-prefix : /alpha
+x-real-ip : 172.1.1.1
+x-kong-request-id : 2ccbe10f3180516212359016616ada43
+content-length : 20
+content-type : application/json
+x-dummy : x-value
+user-agent : PostmanRuntime/7.51.1
+accept : */*
+cache-control : no-cache
+postman-token : 307842b7-bc0d-44ae-83e9-35b2a5198772
+accept-encoding : gzip, deflate, br
+
+
+-----------------------------------------------------------------------
+HTTP query params are:
+q-dummy-one=q-value-one&q-dummy-two=q-value-two
+
+
+
+
+Configure Correlation ID Plugin
+-------------------------------
+
+Go to Kong Manager http://localhost:8002/services / Alpha / Plugins / + New Plugin / Correlation ID
+	- generator: uuid
+	- echo_downstream: checked			# the client will also get the same X-Correlation-ID header
+	- header_name: X-Correlation-ID			# we can use custom header names
+	- Install 
+
+
+
+Test the plugin
+---------------
+
+Send again request Postman / Course Content / REST API Services / Alpha / POST Alpha Echo
+We receive response with code status 200 OK
+
+
+
+Request body is:
+{
+	"test" : "kong"
+}
+
+-----------------------------------------------------------------------
+HTTP request headers are:
+host : alpha:9001
+connection : keep-alive
+x-forwarded-for : 172.1.1.1
+x-forwarded-proto : http
+x-forwarded-host : localhost
+x-forwarded-port : 8000
+x-forwarded-path : /alpha/api/v1/echo
+x-forwarded-prefix : /alpha
+x-real-ip : 172.1.1.1
+x-kong-request-id : 6a42cd3417f4207b6b34f11ca6bea82a
+content-length : 20
+content-type : application/json
+x-dummy : x-value
+user-agent : PostmanRuntime/7.51.1
+accept : */*
+cache-control : no-cache
+postman-token : 51fceea0-0db3-4ffc-96ca-1d840f39b3bc
+accept-encoding : gzip, deflate, br
+x-correlation-id : 9ccbf2b2-dcde-493c-9b6b-83f401e62621				# changed header
+
+
+-----------------------------------------------------------------------
+HTTP query params are:
+q-dummy-one=q-value-one&q-dummy-two=q-value-two
+
+
+This Plugin is used for Header Propoagation. It allows deepr tracing.
+
+
+
+
+
+
+
+
+
+
+
+
