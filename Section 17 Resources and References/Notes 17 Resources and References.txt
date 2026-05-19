@@ -1,1 +1,214 @@
 Section 17 Resources and References
+===================================
+
+
+Section Content
+---------------
+60. Download Source Code & Scripts
+61. Bonus & Discount Codes
+
+
+
+
+
+60. Download Source Code & Scripts
+==================================
+
+The file docker.zip contains the Docker script to be executed. Each subfolder has another README.txt file that contains more detailed information. Please read the README.txt.
+
+To execute the docker script, please install Docker. See lecture titled:
+
+    Install Kong (Using Docker)
+
+    Tips: Useful Docker Commands
+
+
+The java-source-code.zip contains Alpha, Beta, Gamma, and Omega source code. The Java source code is only for reference and not taught in the course.
+
+
+The postman-collection.zip contains the Postman collection to be imported.
+Resources for this lecture
+
+docker.zip
+java-sourse-code.zip
+postman-collection.zip
+
+
+
+
+
+61. Bonus & Discount Codes
+==========================
+
+Here are my other courses, you can purchase them at discounted price by clicking one of these links (the title) :
+
+
+REST API Series
+
+    Practical Java : Spring Boot REST API with Elasticsearch
+(https://www.udemy.com/course/practical-java-spring-boot-rest-api-with-elasticsearch/?referralCode=969C69DFD8DB853DFA1D)
+
+    REST API Security with Java Spring Boot - What & How
+(https://www.udemy.com/course/rest-api-security-with-java-spring-boot-what-how/?referralCode=1BD24AF33EB41F3336C3)
+
+    REST API Design, Management, Monitoring & Analytics
+(https://www.udemy.com/course/rest-api-management-monitoring-analytics-kong-open-source/?referralCode=D4408DA8631D20FE5231)
+
+Generative AI Series
+
+    Java Spring AI, Neo4J, and OpenAI for Knowledge Graph RAG
+(https://www.udemy.com/course/java-spring-ai-neo4j-openai-knowledge-graph-rag/?referralCode=0FABFA117857648F6742)
+
+
+Microservices Series
+
+    RabbitMQ & Java (Spring Boot) for System Integration
+(https://www.udemy.com/course/rabbitmq-java-spring-boot-for-system-integration/?referralCode=EDF8F951AEA91A4D4C75)
+
+    Java Spring & Apache Kafka Bootcamp - Basic to Complete
+(https://www.udemy.com/course/apache-kafka-with-java-spring-boot-theory-hands-on-coding/?referralCode=5C42CAF98051BB9CBA0A)
+
+    Microservice Pattern & Architecture with Java Spring Boot & Google Cloud
+(https://www.udemy.com/course/microservice-pattern-architecture-java-spring-cloud-boot/?referralCode=1C822DAF42A54D36CD56)
+
+    API Performance Testing With Grafana K6, Github Copilot, and ChatGPT
+(https://www.udemy.com/course/l6-rest-api-performance-testing-github-copilot-chatgpt-ai-assistant/?referralCode=30763C592BCFC7292330)
+
+
+Protocol Buffers & gRPC
+
+    Hands-On Go : Microservices with Protocol Buffers & gRPC
+(https://www.udemy.com/course/hands-on-go-programming-microservices-with-protocol-buffers-grpc/?referralCode=8300A724CC8C2F2E96A4)
+
+DevOps & SRE
+
+    Practical DevOps : Kubernetes & Istio With Google Cloud
+(https://www.udemy.com/course/practical-devops-kubernetes-istio-kiali-prometheus-nginx-google-cloud/?referralCode=4974809D039D2D8C31B9)
+
+GraphQL
+
+    Code GraphQL Application With Java Spring Boot & Netflix DGS
+(https://www.udemy.com/course/code-graphql-application-with-java-spring-boot-netflix-dgs/?referralCode=CF435DB5AF1257C6AFF2)
+
+Data Engineering Series
+
+    Basic Data Engineering for Beginner using Google Cloud & Python
+(https://www.udemy.com/course/basic-data-engineering-for-beginner-using-google-cloud-python/?referralCode=FB0B3570D682E10F103F)
+
+    Data Engineering with Google BigQuery & Google Cloud
+(https://www.udemy.com/course/data-engineering-cloud-google-bigquery-data-studio/?referralCode=9ECB6D5FE7AEFB5F4C77)
+
+
+Other Series
+
+    A Journey : Digital Transformation & Modernization Roadmap
+(https://www.udemy.com/course/digital-transformation-modernization-journey-roadmap/?referralCode=5736D1D6C0AB21C19E8F)
+
+    Practical Jira : Project With Agile / Scrum Methodology
+(https://www.udemy.com/course/practical-jira-project-with-agile-scrum-methodology/?referralCode=CD32C064702CC1E78E3D)
+
+
+See each course's summary below.
+
+Java Spring AI, Neo4J, and OpenAI for Knowledge Graph RAG
+
+Learn how to use Spring Boot AI (Artificial Intelligence) to create a Retrieval Augmented Generation (RAG) Pipeline and reduce LLM limitations. Furthermore, use Knowledge Graph with Neo4J to give more context from structured and structured data. Also, see temporal, an orchestration tool that can be used to build a reliable RAG pipeline.
+
+
+Practical Java : Spring Boot REST API with Elasticsearch
+(https://www.udemy.com/course/java-spring-ai-neo4j-openai-knowledge-graph-rag/?referralCode=0FABFA117857648F6742)
+
+It will teach you great detail about REST API in Java. That course (REST API) and message broker (Kafka/RabbitMQ) are a foundation for microservice architecture. Taking both will surely give you great benefits and up-to-date knowledge. For the data storage, we will use Elasticsearch, a popular text-based search engine-
+
+
+REST API Security with Java Spring Boot - What & How
+(https://www.udemy.com/course/rest-api-security-with-java-spring-boot-what-how/?referralCode=1BD24AF33EB41F3336C3)
+
+Now that you know how to write an API on Spring, you must secure it. APIs are useful, but an unsecured API can cost you money or damage your reputation. In this course, you will learn possible attacks on your API and, more importantly, how to prevent them. Protect your API; don't let somebody steal data from your API or give any dangerous data through a hole in the API.
+
+
+REST API Design, Management, Monitoring & Analytics
+(https://www.udemy.com/course/rest-api-management-monitoring-analytics-kong-open-source/?referralCode=D4408DA8631D20FE5231)
+
+Building REST APIs is fun, but managing many APIs can be a headache. Still, you need to manage and analyze those APIs for various reasons. This course will teach you to use open-source tools to manage, monitor, and analyze your APIs.
+
+No matter what is your programming language, this course will work!
+
+
+RabbitMQ & Java (Spring Boot) for System Integration
+(https://www.udemy.com/course/rabbitmq-java-spring-boot-for-system-integration/?referralCode=EDF8F951AEA91A4D4C75)
+
+A popular alternative product to Apache Kafka. It has some other features that Kafka doesn't have (and vice versa). This will enrich your knowledge about message brokers since RabbitMQ and Apache Kafka are two popular message brokers nowadays.
+
+
+Hands-On Go : Microservices with Protocol Buffers & gRPC
+(https://www.udemy.com/course/hands-on-go-programming-microservices-with-protocol-buffers-grpc/?referralCode=8300A724CC8C2F2E96A4)
+
+How to use Protocol Buffers (protobuf) and gRPC for microservice architecture in the Go programming language. The course covers the theory and implementation of protobuf, including scalar types, package, and schema evolution. It also covers the integration of gRPC and how to manage it using various tools like GitHub, error handling, and resilient servers. The course involves working on creating a banking application using gRPC and protobuf and using PostgreSQL database and Go ORM. By the end of the course, learners will have the skills and knowledge required to create microservices using gRPC and protobuf with the Go programming language.
+
+
+Java Spring & Apache Kafka Bootcamp - Basic to Complete
+(https://www.udemy.com/course/apache-kafka-with-java-spring-boot-theory-hands-on-coding/?referralCode=5C42CAF98051BB9CBA0A)
+
+Kafka is an alternative to RabbitMQ with some similarities (and some differences). If you're interested in real-time, asynchronous messaging with crazy-high performance, then learning Kafka will be a great value. 
+
+By the way, Kafka is well-known for its big data streaming platform. This course will teach you real-time data transformation using Spring Kafka Stream. 
+
+This boot camp will teach you how to use Apache Kafka with Java Spring. It will start with the basic core Kafka, Kafka stream, kafka connect, Kafka schema registry, JSON / avro data format, kafka rest proxy, and ksqlDB—all in one complete course.
+
+
+Microservice Pattern & Architecture with Java Spring Boot & Google Cloud
+(https://www.udemy.com/course/microservice-pattern-architecture-java-spring-cloud-boot/?referralCode=1C822DAF42A54D36CD56)
+
+You've learned REST API & Message Broker and need to use them in real life. So, you decide to move to microservice architecture. BAD NEWS! It is difficult! Designed poorly, and the code might give more headaches rather than benefits. GOOD NEWS: this course is designed for you to learn about popular microservice architectural patterns to avoid pitfalls during microservice implementation. This course has full sample code in Java Spring Cloud & Boot (although we will not learn line-by-line coding).
+
+
+API Performance Testing With Grafana K6, Github Copilot, and ChatGPT
+(https://www.udemy.com/course/l6-rest-api-performance-testing-github-copilot-chatgpt-ai-assistant/?referralCode=30763C592BCFC7292330)
+ 
+Master REST API performance testing with Grafana K6, empowered by AI assistants like GitHub Copilot and ChatGPT. This course offers hands-on learning, advanced techniques, and insights to revolutionize your testing efficiency. Embrace the future of software testing, stay ahead in industry trends, and enhance your problem-solving skills. Ideal for developers, QA professionals, and tech enthusiasts ready to explore AI integration in testing.
+
+
+Practical DevOps : Kubernetes & Istio with Google Cloud
+(https://www.udemy.com/course/practical-devops-kubernetes-istio-kiali-prometheus-nginx-google-cloud/?referralCode=4974809D039D2D8C31B9)
+
+DevOps is a culture to improve productivity. Many times, DevOps is seen as process automation. But there is a lot to learn for DevOps. This course focuses on modern microservice deployment, using many tools that are actually used in real life. We will learn about the container, docker, Kubernetes, istio, Prometheus, grafana, kiali, and using Google Kubernetes Engine. Furthermore, we will learn how to leverage GitOps, a branch of DevOps that relies on Git as a single source of truth. For GitOps, we will learn using ArgoCd.
+
+
+Code GraphQL Application With Java Spring Boot & Netflix DGS
+(https://www.udemy.com/course/code-graphql-application-with-java-spring-boot-netflix-dgs/?referralCode=CF435DB5AF1257C6AFF2)
+
+Some say GraphQL is a "REST API killer", "The next REST API", et cetera. But what is GraphQL, and why do Facebook, Netflix, GitHub, and some large names shift their technology to GraphQL? Is it true that GraphQL is a "REST API killer"? Or the contrary, is it "REST API friend"?  This course will teach GraphQL fundamentals, including data types, schemas, and GraphQL operations. We will learn to use Java Spring Boot and Netflix DGS framework to easily build GraphQL Java applications. In this course, we will learn theories and do hands-on coding using PostgreSQL as a database.
+
+
+Basic Data Engineering for Beginner using Google Cloud & Python
+(https://www.udemy.com/course/basic-data-engineering-for-beginner-using-google-cloud-python/?referralCode=FB0B3570D682E10F103F)
+
+So, what is this hype about "data engineering"? How does it differ from "software engineering"? In this course, you will learn first to become a data engineer using SQL and Python and Google Cloud as infrastructure. You will also learn about data warehouses, data lakes, ETL, etc.
+
+
+Data Engineering with Google BigQuery & Google Cloud
+(https://www.udemy.com/course/data-engineering-cloud-google-bigquery-data-studio/?referralCode=9ECB6D5FE7AEFB5F4C77)
+
+Big data is everywhere! However, building one infrastructure for Big Data is costly and takes time. Fortunately, we have Google BigQuery to help us. Learn about Data Engineering using Google BigQuery, Data Studio, and other Google Cloud products. Also, learn data ingestion using free tools like logstash, embulk, or Kafka.
+
+
+A Journey : Digital Transformation & Modernization Roadmap
+(https://www.udemy.com/course/digital-transformation-modernization-journey-roadmap/?referralCode=5736D1D6C0AB21C19E8F)
+
+"Digital transformation" is a hot keyword lately. Unlike the others, this course is not purely technical. It is like my journey log for doing digital transformation in a company that has been established for many years. I will share both non-technical and technology aspects of digital transformation. This course is a journey, and my journey has not finished yet, so I will try to update the course regularly when I reach new milestones.
+
+Tip: Did you know you can buy the course now and get free updates forever? So you don't need to wait until my journey ends.
+
+
+Practical Jira : Project With Agile / Scrum Methodology
+(https://www.udemy.com/course/practical-jira-project-with-agile-scrum-methodology/?referralCode=CD32C064702CC1E78E3D)
+ 
+Jira is a software development tool for agile teams to plan, track, and release software. It is often used in conjunction with Scrum, a framework for managing and completing complex projects, to provide a way for teams to organize and prioritize their work, assign tasks, and track progress. Jira can be used to create and manage user stories, bugs, and tasks, and to track the progress of sprints and releases. Jira is a popular tool used by many software development teams, and it can be an important tool for software engineers in certain environments. Jira provides a way for teams to organize and prioritize their work, assign tasks, and track progress, which can help software engineers stay on top of their tasks and ensure that they meet project deadlines. Jira also allows teams to collaborate effectively and ensure that everyone is aware of the latest project status.
+
+
+
+
+
+
+
