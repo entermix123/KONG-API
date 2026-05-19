@@ -1,1 +1,307 @@
 Section 16 API Developer Portal
+===============================
+
+
+Section Content
+---------------
+57. API Developer Portal - Theory
+58. API Developer Portal - Hands On
+59. Securing Kong Admin API
+
+
+
+
+
+57. API Developer Portal - Theory
+=================================
+
+In short, the API developer portal is a documentation for our API. It's like a food menu in our mall analogy. It is an important part of the API ecosystem. Making APIs with proper documentation is a good and useful habit.
+
+Companies that provide API should also provide good developer portals or documentation. In terms of API documentation, it should provide the required information for API consumers.
+
+Нote that "required information" might differ from each API provider's perspective. But we should provide, at minimum endpoint, HTTP method to access, request parameters, and authentication mechanism.
+
+If a response sample can be provided, it will be better. If a long description can be provided, it will be very good. Again, this might be different for each API provider.
+
+
+
+
+
+58. API Developer Portal - Hands On
+===================================
+
+Kong provides an API developer portal where we can upload documentation. Note the word "upload" here, as it will be related to the next thing we learn. Kong also provides a feature for restricting or giving access to documentation for certain people. Unfortunately, this feature is only available on the Kong paid edition. However, there are several alternatives from Kong.
+
+Several available alternatives are: Swagger, Apiary, or Redocly.
+
+The standard format used is Open API, an API specification format for documenting REST APIs. The OpenAPI specification provides a way to document endpoints, HTTP methods requests, responses, and authentications.
+
+An OpenAPI file is a "yaml" or JSON file in a particular format. This file is then uploaded into API developer tools to provide a user interface.
+
+Kong or any alternatives I mention will receive a yml or JSON file containing swagger specification. There are many libraries for various programming languages to create swagger specifications. Some can embed the documentation in the source code and generate an OpenAPI JSON file.
+
+Swagger was the project's original name, and it was later donated to the OpenAPI Initiative. Version 1 and 2 of the specification are commonly called "swagger". The OpenAPI Specification is the newer term, OpenAPI is started with version 3 and is backward-compatible with Swagger 2. 
+
+A common example of swagger documentation is the Petstore API We will use it to learn about using swagger documentation. Go into petstore.swagger.io.
+
+This page is the rendered API documentation, where we can see the details for each API. The OpenAPI specification can be seen by clicking the link below the title. Most documentation tools can recognize both. Download this pet store JSON specification. We will need it for the next demonstration.
+
+
+
+Apiary
+------
+
+We will use Apiary to host pet store open API documentation for the next example. We will use Apiary as our API documentation. It is a cloud provider hosting API documentation based on openapi. Go to apiary.io and sign-up.
+
+Set subdomain name for example 'mykongcoursedoc' and proceed.
+
+In the editor tab, we can create open API specifications. There are many swagger integration tools for many programming languages.
+It may still need adjustment, but not much. The effort of editing generated spec is much lighter than typing everything manually.
+
+Copy and paste the entire JSON from petstore.swagger.io into the apiary editor window. Wait a while until Apiary validates the JSON. It is valid, so let's save it. Now that it's saved, we can see the result on the "Documentation" tab.
+
+It's not just us who can see the documentation. By default, apiary API documentation is public. So, we should be careful when using cloud-based API documentation, which gives public access. Some providers, like Apiary, provide a private API documentation repository, but they need a paid license and are out of the scope of this course.
+
+
+
+Redocly
+-------
+
+We will use Redocly to host Petstore swagger documentation for the next example. Go to redocly.com and sign up.
+
+After login, add a new API. Upload the API specification that has just been downloaded. Fill in the required fields on redocly.Go back to the home page and preview the documentation using this menu.
+
+Redocly developer portal requires a paid license, so that we will skip it on this course.
+
+
+
+
+
+
+59. Securing Kong Admin API
+===========================
+
+Currently, Kong admin API is available in port 8001 but has no security.
+
+This configuration means anybody can modify services, routes, or any other kong object using API. Now that we have learned authentication plugins, let's use them to secure our admin API.
+
+We open port 8001 in this course for simplicity, but it is not a good practice in real life. The default Kong configuration only allows connection to port 8001 from its address at 127.0.0.1.
+
+Since we use docker to install Kong, localhost means the docker virtual machine inside the docker network where Kong runs, not the laptop address where we work. But we override this behavior by supplying KONG_ADMIN_LISTEN in docker, with value 0.0.0.0, which opens port 8001 from anywhere.
+
+That behavior override is required since we are using Kong Manager, where the Kong manager runs from a web browser located on our laptop, not from the Docker virtual machine where Kong is installed.
+
+We should secure Admin API for real-life purposes so that not everybody can change Kong configuration using Kong API. We will secure Kong Admin API using the API key.
+
+
+
+Securing Kong Admin
+-------------------
+
+We will use Kong to secure Kong admin API using a loopback mechanism.
+
+We have Kong as an API management tool on certain IP address on the docker virtual machine. Kong, as an API gateway, runs on port 8000. Inside Kong, it has an admin API to manage itself, which runs on port 8001. Currently, the Kong admin API is unsecured and exposed on port 8001. 
+
+Everybody that knows Kong's IP address and port 8001 can exploit this API to change Kong's configuration. Well, this is not the default setup Kong's default setup limits access to the admin API port only from localhost (or 127.0.0.1). The localhost here is the Kong virtual machine IP address inside the docker virtual network. But for simplicity's sake, in this course, I modified the default setup to accept connections from everywhere. The modification took place on the docker-compose.yml file in this line. - kong-docker-config.png
+
+
+To secure admin API, we can do a few ways.
+
+First, we have to use Kong default configuration, which limits access to Admin API only from localhost. - kong-localhost-access-config.png. We need to remove the setting override from the docker-compose script. This removal implies that the Kong manager will not work. We can only manage Kong admin API from the local computer where Kong is installed, the Kong virtual machine inside the docker network. Since we use docker, we cannot access the virtual machine through a web browser.
+
+
+
+Alternatively, we can use a loopback mechanism. 
+-----------------------------------------------
+
+Kong's routing mechanism allows it to act as a gateway for its Admin API. So, we registered Kong admin API as a service and created a route from Kong gateway to Kong Admin API.
+
+How to do it?
+
+Don't override Kong admin so it is accessible only from localhost Then we create a service and route from Kong, refer to admin API at localhost:8001. Let's say the route is "/admin." Then, we can add a plugin to this service, something like an API key plugin, to secure it. So, to access the admin API, we can create a consumer account to access it via the Kong gateway with proper authorization. - kong-secured-as-service.png
+
+Secure Kong Adnim with Kong Manager
+-----------------------------------
+
+1. Create the service
+	Go to http://localhost:8002/services / + New Gateway Service
+		- Name: admin
+		- Upstream URL: http://kong:8001
+		- Save
+
+2. Add Rout for admin service
+	Go to http://localhost:8002/services/admin/routes / + New Route
+		- Name: admin-route
+		- HTTP / HTTPS Routing Rules / Paths: /admin
+		- Save
+
+3. Now, opening a browser and going to localhost/admin will redirect us to the Kong admin page. 
+	- http://localhost/admin
+	- http://localhost:8000/admin 	# if docker compose file is not modified in section 7/24
+
+
+4. Secure the Kong "admin" service.
+	Go to http://localhost:8002/services/ admin / Plugins / + New Plugin / Key Authentication
+		- key_name: apikey
+		- key_in_header: checked
+		- key_in_query: unchecked    	# unchecked !
+		- run_on_preflight: checked
+		- Install
+
+This way, we secure the Kong admin API with a loopback mechanism.
+
+5. Create a consumer as a Kong administrator. 
+	Go to http://localhost:8002/consumers / + New Consumer
+		- Username : kong-admin
+		- Save
+
+6. Add credential to consumer kong-admin
+	Go to http://localhost:8002/consumers / kong-admin / Credentials / + New Key Auth Credential
+		- Key: kong-admin-key		# simple example, In production, we should use more random string.
+		- Create
+
+At this point, anybody who has an API key can access the Kong admin API. So, even public or partner consumers can access the API with their API key.
+
+We can secure it more by combining the API key plugin with an access control list so only consumers in specific groups can access the admin API. In Kong admin service we can add another plugin combined with API authentication.
+
+7. Add Access Contrl List (ACL) in the admin service
+	Go to http://localhost:8002/services/ admin / Plugins / + New Plugin / ACL
+		- allow: kong-administrator
+		- Install
+
+8. Add ACL credential and put the "kong-admin" consumer in the "kong-administrator" group.
+	Go to http://localhost:8002/consumers / kong-admin / Credentials / + New ACL Credential
+		- Group: kong-administrator
+		- Create
+
+
+
+Test the access with Postman
+----------------------------
+
+Create request with address http://localhost/admin and add header Key: adminkey Value: kong-admin-key
+
+When we send the request we should be receive response with status code 200 OK
+
+We can access the admin API with this API key because it is owned by "kong-admin," which is in the administrator group.
+
+
+For the next step, open the file docker-compose.yml (line 75) in the kong folder and close this part, which exposes port 8001 to the host. 
+
+docker-compose.yml
+-------------------------------------------------------
+    ports:
+      - "${KONG_INBOUND_PROXY_LISTEN:-0.0.0.0}:80:8000/tcp"
+      - "${KONG_INBOUND_SSL_PROXY_LISTEN:-0.0.0.0}:443:8443/tcp"
+      # - "127.0.0.1:8001:8001/tcp"						# set comment on line 75
+      - "127.0.0.1:8444:8444/tcp"
+      - "127.0.0.1:8002:8002/tcp"
+    healthcheck:
+-------------------------------------------------------
+
+Restart the docker-compose container for Kong. 
+	terminal --> docker-compose down		# wait for all containers to stop
+	terminal --> docker-compose up -d		# start the containers again
+
+Now, we cannot access localhost port 8001. We access the Kong admin API using the Kong loopback URL at http://localhost/admin with the proper API key. The problem is Kong Manager cannot be used since, behind the screen Kong Manager requires access to Kong Admin API which is currently secured.
+
+At this moment, the Kong manager is not able to add an API key or any other header to access the secured Kong admin API although we can change the admin API URL, The feature might be available in the future, but for now Kong Manager cannot be used. 
+
+Hence, we can rollback the change on docker-compose by opening port 8001 and restart docker-compose to enable Kong manager.
+
+
+THIS METHOD DO NOW ALLOW TO USE KONG MANAGER !!!
+================================================
+
+
+1. Network-level security (Most Common in Production)
+Instead of using Kong's authentication plugins for Admin API, secure it at the network level:
+
+Keep Admin API on 127.0.0.1:8001 (localhost only)
+Use a VPN or bastion host to access the Kong server
+Only allow Admin API access from specific IP ranges using firewall rules
+Use Kubernetes Network Policies if running in K8s to restrict access to specific namespaces/pods
+
+This way Kong Manager works normally, but only authorized users on the network can reach it.
+
+
+2. Use Kong Enterprise (Commercial Solution)
+Kong Enterprise has RBAC (Role-Based Access Control) built into Kong Manager:
+
+Kong Manager supports authentication (Basic Auth, LDAP, OIDC)
+You can secure Admin API and Kong Manager together
+Different teams get different permissions within the UI
+
+3. Reverse Proxy with Authentication
+Put Kong Manager behind a reverse proxy (Nginx, Apache, or even another Kong instance) that handles authentication:
+User → Nginx (with Basic Auth) → Kong Manager → Kong Admin API (localhost only)
+The reverse proxy adds authentication before requests reach Kong Manager.
+
+4. Custom Kong Manager Configuration (Advanced)
+Kong Manager can be configured to use a custom Admin API URL and potentially add headers, but this requires:
+
+Modifying Kong Manager's configuration file
+Setting up a proxy that injects the API key
+Not officially supported and fragile
+
+5. Hybrid Approach (Development vs Production)
+For your course context:
+
+Development: Keep port 8001 open with no auth for Kong Manager convenience
+Production: Use the loopback method with API key + ACL, and manage Kong via:
+
+decK (declarative configuration tool) - manage Kong configs as YAML files
+Kong Admin API directly with proper credentials (Postman, curl, or scripts)
+Terraform Kong provider for infrastructure-as-code
+ArgoCD to deploy Kong configurations
+
+
+Production-Ready Recommendation 
+
+Admin API on localhost only (127.0.0.1:8001)
+Network-level security (VPN/firewall)
+Use decK for declarative management instead of Kong Manager
+Show students how to export current config: deck dump
+Show how to apply configs: deck sync
+
+Example decK workflow:
+
+-------------------------------------------------------------------------------------
+# Export current Kong configuration
+deck dump --output-file kong.yaml
+
+# Edit kong.yaml in your preferred editor
+vim kong.yaml
+
+# Apply changes
+deck sync --state kong.yaml
+```
+
+This teaches students the "GitOps way" which aligns perfectly with your ArgoCD course content - all Kong configs in Git, managed declaratively.
+
+**For your instruction document, I'd add:**
+```
+Production Alternative: Using decK
+----------------------------------
+
+In production environments, instead of using Kong Manager with an exposed 
+Admin API, consider using decK (declarative configuration) tool:
+
+1. Keep Admin API on localhost only (secure by default)
+2. Manage Kong configurations as YAML files in Git
+3. Use ArgoCD to apply Kong configurations automatically
+4. Network-level security for any admin access needed
+
+This approach aligns with GitOps principles and works seamlessly with 
+the ArgoCD deployment strategy covered in this course.
+-------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
