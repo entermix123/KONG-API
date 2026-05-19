@@ -1,1 +1,609 @@
 Section 15 Analytics and Monitoring
+===================================
+
+
+Section Content
+---------------
+52. Distributed Tracing
+53. UDP Log + Elastic Stack For Analytics
+54. Visualize API Analytics
+55. API Analytics Dashboard
+56. Kong Metrics With Prometheus & Grafana
+
+
+
+
+52. Distributed Tracing
+=======================
+
+
+In a microservice architecture, business logic can call a single API or combine several APIs to process one logic. Each of the APIs can be in a different application or even a different server. So, latency data can be an issue.
+
+It is a good idea to have data regarding execution time so we can troubleshoot latency problems in microservice architecture. But it is not only about timing. 
+
+In monolith architecture, debugging and reproducing the error is relatively easy since all logic is in one place if something goes wrong. 
+
+The diagram on picure distributed-tracking.png, which calls logic at microservice architecture. The logic can be scattered among multiple APIs. And we can also have asynchronous calls. So we need to know the call chain and which API has a problem or returning an error. We can track requests with distributed tracing as they go through multiple services. We can track timing and other metadata for each API call and this information can be reassembled to provide a complete picture of the application's behavior at runtime. We can trace either synchronous or asynchronous calls.
+
+Every call to chain API, consists of 4 calls on four distributed services. Three synchronous calls and one asynchronous. All four build up the chain API, so we must trace them all. - simple-distributed-tracing-diagram.png
+
+
+
+Zipkin
+------
+
+One popular distributed tracing tool is Zipkin. It's free and capable of visualizing API call chains like the previous diagram. Kong provides a Zipkin integration plugin. The Kong plugin can trace each request using the Zipkin. However, our services must be configured for Zipkin instrumentation to create a chain call like the previous slide. To create this instrumentation, please go to Zipkin's official website about instrumentation and find documentation for each programming language. - https://zipkin.io/pages/tracers_instrumentation.html
+
+We must have Zipkin running, so we will run one using the docker. At this point, we should already extract docker.zip from the last section of the course from a lecture with the title "Resources & References" and has subfolder “zipkin”. From terminal, go to that subfolder and run the docker compose.
+
+Start Zipkin with docker-compose
+	zipkin folder terminal --> docker-compose up -d
+
+
+Go to Kong Manager Plugin Page http://localhost:8002/plugins / + New Plugin / Zipkin
+	- http_endpoint: http://zipkin:9411/api/v2/spans	# Zipkin API endpoint to send data.
+	- sample_ratio: 1      # all requests will be sent to Zipkin. # Set to 0 to turn sampling off or 1 to sample all requests. 
+	# In production, where our application is already stable, it is better to lower this value to 0.1 - 10% of sample request.
+	- Install
+
+In Postman we have provided a dummy endpoint that calls five random endpoints inside the logic from alpha, beta, gamma, or omega. The demo application will call each API in alpha, beta, gamma, or omega through the Kong gateway.
+
+
+
+
+SYNC CHAIN
+----------
+
+Send request Postman / Course Content / REST API Services / Omega / GET Omega - Chain Sync for sinchronous endpoints
+We should receive response with status code 200 OK and body:
+--------------------------------------------------------
+[
+    {
+        "message": "Slow response from Omega"
+    },
+    {
+        "message": "Fast response from Alpha"
+    },
+    {
+        "message": "Fast response from Alpha"
+    },
+    {
+        "message": "Fast response from Gamma"
+    },
+    {
+        "message": "Slow response from Beta"
+    }
+]
+--------------------------------------------------------
+
+
+Zipkin view for sync calls
+--------------------------
+
+Access Zipin on http://localhost:9411/zipkin/
+
+Here, we can query the zipkin trace by pressing 'RUN QUERY' button.
+We can see the total time for this chain of calls and services. Spans are like a chunk of calls, so this chain consists of more than ten spans.
+
+We can see detailed spans when we click on 'SHOW' button. We can see detailed breakdown of the total time and call span. As we can see, more than one API call exists, forming an API call chain. The rest is the call span for Kong. Since Kong is an API gateway, every API call will go through Kong, and that is an additional span. So, using this configuration as distributed tracing, we can check our API call, including if there are any errors. - zipkin-span-view.png
+
+
+
+
+
+ASYNC CHAIN
+-----------
+
+Use request Postman / Course Content / REST API Services / Omega / GET Omega - Chain Async for asynchronous endpoints
+
+We should receive response with status code 200 OK and body:
+
+
+Connection closed
+
+{"message":"Slow response from Beta"}
+-------------------------------------------
+{
+    "message": "Slow response from Beta"
+}
+-------------------------------------------
+
+
+{"message":"Slow response from Beta"}
+-------------------------------------------
+{
+    "message": "Slow response from Beta"
+}
+-------------------------------------------
+
+
+{"message":"Slow response from Beta"}
+-------------------------------------------
+{
+    "message": "Slow response from Beta"
+}
+-------------------------------------------
+
+
+{"message":"Fast response from Gamma"}
+-------------------------------------------
+{
+    "message": "Fast response from Gamma"
+}
+-------------------------------------------
+
+
+{"message":"Fast response from Gamma"}
+-------------------------------------------
+{
+    "message": "Fast response from Gamma"
+}
+-------------------------------------------
+
+Connected to http://localhost/omega/api/v1/chain/async
+
+
+
+Zipkin view for async calls
+---------------------------
+Access Zipin on http://localhost:9411/zipkin/ and list DEtails for the Async tracing - zipkin-async-tracing-view.png
+
+Note the difference. In async, all requests started almost at once, not in sequence. Zipkin will also show this information, as we can see here. The bar chart is started at almost the same time. The backend in this course is configured with the Zipkin instrumentation library.
+
+
+
+The backend in this course is configured with the Zipkin instrumentation library. Without an instrumentation library, Kong sends data to Zipkin, but each call is treated as an independent API call although they are part of the API chain call. So, instead of one call to chain endpoint and has five children within it, it has six calls.
+
+
+
+
+
+53. UDP Log + Elastic Stack For Analytics
+=========================================
+
+Analytics is an important part of measuring and improving our service. In this course, we will learn how to know several things and create graphical representations of data like API usage frequency shows API that is used often or seldom. API performance, to know which endpoint is slow and needs improvement. Also, the API error rate is based on the HTTP status response. 
+
+This course will use Kong and Elastic stack to do analytics. There are many products of Elastic stack, where we will use Elasticsearch, Logstash, and Kibana for analytics. For data storage, we will use Elastic Search. It is a free, open-source search and analytics engine. Elastic search saves data in JSON format, and data creation or manipulation can be done using REST API. Even selecting data in Elasticsearch can be done using the REST API. Elastic search is optimized for search engines and can find data fast. Elastic search can be scaled horizontally, making it possible to work with much data.
+
+To collect and send data to Elasticsearch, we will use Logstash. Logstash has way more capability than just sending data to Elasticsearch. It can ingest data from multiple inputs, like a relational database or file system, from a real-time messaging system like RabbitMQ, Apache Kafka, and many more. Logstash has a wide variety of output for the output: console, files, database, and even big data stack. Logstash can parse and transform data on the fly, not just send raw data. So, the input system does not need to change how it stores data, but output systems can get data format as required, using logstash as an intermediary.
+
+To visualize data in a readable format, we use Kibana. Kibana will take data from Elasticsearch, and we can create various charts from it. We can also do queries, filter the data specific to our needs, and visualize the data in time series. We can even create a real-time dashboard using Kibana. The elastic stack is powerful and comes with a free edition. 
+
+But wait, what about Kong?
+
+Well, we will gather data from the Kong log.
+
+Kong can provide system logs. It's now up to us to enable the log and process it. So, we will put a UDP plugin in Kong to send log data into logstash so we can visualize them using Elasticsearch and Kibana. - analytics-stack-ELK.png
+
+Working with elastic stack technology: Elasticsearch, kibana, and logstash require complex setup. In the video, I already configured the elastic stack so we can focus on Kong.
+
+Follow the instructions on README.txt file in provided docker/elastic folder. The elastic stack used in this course is Elastic 8.
+
+Short instructions
+-----------------------------------------------------------------------------------
+1. Start ELK stack with docker compose
+	elastic folder terminal --> docker-compose up -d
+
+2. Wait few mimnutes for ELK to start get Kibana enrollment token
+	terminal --> docker exec -ti elasticsearch /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token --scope kibana
+	# save the provided token
+
+3. Get Kibana verification code
+	terminal --> docker exec -ti kibana /usr/share/kibana/bin/kibana-verification-code
+
+	# Copy and save the verification code
+
+4. Get Elasticsearch credentials
+	terminal --> docker exec -ti elasticsearch /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic
+
+	# Copy and save the password
+
+5. Configure Kibana UI
+	5.1. From web browser, open http://localhost:5601
+	5.2. Paste enrollment token from step 2
+	5.3. Kibana UI will ask for verification code. Use the 6 digits number from step 3
+	5.4. Login to Kibana using username "elastic" and password from step 4
+	5.5. Choose an option "Explore on my own"
+
+6. CONFIGURE LOGSTASH PIPELINE
+	6.1. On the file elastic/logstash/pipeline.conf, change the password on "output" section (around line 35 on the file) to the elasticsearch password (from step 4.).
+	6.2. Find the self-signed Elasticsearch certificate
+		terminal --> docker exec -it elasticsearch sh -c "ls /usr/share/elasticsearch/config/certs/*.crt"
+
+		# You will get the output indicating a file .crt. Copy the output, and use it on next step
+	
+	6.3. Copy self-signed Elasticsearch certificate to current folder. 
+	     If required, replace the /usr/share/... using response from step #1
+		terminal --> docker cp elasticsearch:/usr/share/elasticsearch/config/certs/http_ca.crt .
+		
+		# Make sure on your local folder, there is a file http_ca.crt
+
+	6.4. Create the directory in the logstash container to store the certificate
+		terminal --> docker exec -it logstash mkdir -p /usr/share/logstash/certs
+
+	6.5. Copy the crt file to logstash container 
+		terminal --> docker cp http_ca.crt logstash:/usr/share/logstash/certs/
+
+	6.6. Restart the docker logstash container
+		terminal --> docker restart logstash
+-----------------------------------------------------------------------------------
+
+
+Login to elasticsearch on https:localhost:9200
+	- Username: elastic
+	- Password: password from tep 4
+		
+Check Logstash address http://localhost:9600/
+
+Open Kibana on http://localhost:5601/
+	- Username: elastic
+	- Password: password from tep 4
+
+
+Add UDP Plugin to Kong
+----------------------
+Go to Kong Mnager http://localhost:8002/plugins / + New Plugin / UDP Log
+	- host: logstash		# the name of the docker container
+	- port: 5555			# The port is configured on the logstash pipeline.conf file.
+	- Install
+
+
+Test the connection with Postman
+--------------------------------
+Send several times (10) provided request Postman / Course Content / REST API Services / Alpha / GET - Alpha Fast Request
+
+
+Set Kibana Data View
+--------------------
+Open Kibana on http://localhost:5601/
+	- Menu / Discover / Create data view
+		- Name: kong
+		- Index pattern: kong*
+		- Timestamp field: @timestamp			# default value
+		- Save data view to Kibana
+
+
+So, we have raw data. Next, it's up to us how to process the data.
+
+Generate data for data analytics with Postman
+---------------------------------------------
+Select folder Course Content / REST API Services, open the menu and choose 'Run folder'. 
+	- Iterations: 1000	# iterations
+	- Delay: 20		# 20 ms between each call
+	- Run Course - Kong API Management
+
+This configuration should be enough for our sample.
+
+We can check it again from the "Discover" menu. With Elastic stack, especially Kibana, we can make a visualization for those data. We can also query and filter the data.
+
+
+
+
+
+
+54. Visualize API Analytics
+===========================
+
+We will create a visualization for usage frequency. This visualization will show the number of API calls per period. 
+
+Open Kibana on http://localhost:5601/ go to Menu / Analytics / Visualize Library / Create new visualization / Lens
+	1. From top right dorp down menu 'Bar vertical stacked' choose 'Line'
+	2. Vertical Axis:
+		- Count
+		- Close
+	3. Horizontal Axis:
+		- Date histogram
+		- Field: @timestamp
+		- Close
+	4. Brakedown				# find what API is called most frequentlly
+		- Field: request.uri.keyword
+		- Number of values: 5		# see the five most used APIs during a particular period
+		- Rank direction: Descending
+		- Advanced:
+			- Turn OFF 'Group remainding values as "Other"'
+		- Close
+
+	5. Save the Chart
+		- Title: Kong - Request per Period	
+		- Add to Dashboard: None
+		- Save and add to Library
+
+We can experiment with various settings to generate visualizations that match our needs.
+
+Create another line chart, but this time only for omega, using the previous line chart as the basis.
+Go to Menu / Analytics / Visualize Library / Open the created visualization 'Kong - Request per Period'
+	- Add Filter: service.name.keyword:"omega"
+	# Now, we have endpoints on omega, and the rest are filtered
+	- Save this line chart as new visualization
+		- Title: Kong - Request per Period (Omega)
+		- Enable 'Save as new Lens visualization'
+		- Save and add to library
+
+
+The line chart is quite nice, but sometimes, we need to see the text representation of usage frequency.
+
+Create another visualization from the "kong" index. But this time, create a "data table."
+-----------------------------------------------------------------------------------------
+Go to Menu / Analytics / Visualize Library / Create visualization / Aggregation based / Data table
+	- choose title: kong
+	# Here, we got the total count of API calls within a certain period.
+	- Set the period using this time filter on the top right: Last 15 minutes
+	- Buckets:
+		- Add: Split Rows
+		- Aggregation: Terms
+		- Field: request.uri.keyword
+		- Size: 20
+		- Enable "Group other values in separate bucket"
+		- Custom label: endpoint
+		- Update
+
+	- Save the Chart
+		- Title: Kong - Endpoint Count	
+		- Add to Dashboard: None
+		- Save and add to Library
+
+
+
+The next visualization we will create is to examine API performance regarding execution time.
+---------------------------------------------------------------------------------------------
+Go to Menu / Analytics / Visualize Library / Create visualization / Aggregation based / Gauge
+	- choose title: kong
+	- Metrics:
+		- Aggregation: Average
+		- Field: latencies.rpoxy
+		- custom label: avg exeution time
+	# Next, we will split the gauge into ranges. We will find three endpoints with the worst performance.
+	- Buckets / Add / Split groups
+		- Aggregation: Terms
+		- Field: request.uri.keyword
+		- Update
+	- Size: 3
+
+Now we get the three worst-performance APIs.
+
+Let's make a target for our API performance
+-------------------------------------------
+We will use three ranges.
+
+Options:
+	- Ranges:
+		- >= 0 -> < 1000     # Any API with an execution time of less than 1000 milliseconds will be in the first range
+		- >= 1000 -> < 3000  # less than 3000 milliseconds in the second range
+		- >= 3000 -> 10000   # more than 3000 milliseconds will be considered slow
+	- Update
+
+	- Save the Chart
+		- Title: Kong - Worst Execution Time	
+		- Add to Dashboard: None
+		- Save and add to Library
+
+
+
+
+Let's create heatmap to determine which services are used most during certain periods
+-------------------------------------------------------------------------------------
+Go to Menu / Analytics / Visualize Library / Create visualization / Aggregation based / Heat map
+	- choose title: kong
+	- Metrics: Value Count
+	- Buckets / Add / X-axis
+		- Aggregation: Date Histogram
+		- Field: @timestamp
+		- Minimum interval: Minute
+	- Buckets / Add / Y-axis
+		- Sub-aggregation: Terms
+		- Field: service.name.keyword
+		- Update
+
+Now we know which service got hit during a certain period.
+
+
+Kibana also provides options to customize the display.
+- Options:
+	- Heatmap settings: 
+		- Color schema: Reds
+	- Update
+
+	- Save the Chart
+		- Title: Kong - Service Heat Map
+		- Add to Dashboard: None
+		- Save and add to Library
+
+
+
+
+Create visualization is the HTTP response status breakdown
+----------------------------------------------------------
+Go to Menu / Analytics / Visualize Library / Create visualization / Aggregation based / Pie
+	- choose title: kong
+	- Buckets / Add / Spli tSlices
+	- Aggregation: Terms
+	- Field: response.status
+	- Size: 10			# top 10 HTTP Status count
+	- Update
+
+	- Save the Chart
+		- Title: Kong - HTTP Status Brakedown
+		- Add to Dashboard: None
+		- Save and add to Library
+
+
+
+
+
+
+
+55. API Analytics Dashboard
+===========================
+
+Now that we have several visualizations, we can combine them into a dashboard and provide real-time data. 
+
+Open Postman and run the "REST API Services" folder. This time, run it a 3000 times with a 20 ms interval to see the data movement on the dashboard.
+
+Create new Dashboard
+--------------------
+Go to Menu / Analytics / Dashboard / Create a dashboard / Add from folder 
+	- Kong - Endpoint Count
+	- Kong - HTTP Status Brakedown
+	- Kong - Request per Period
+	- Kong - Service Heat Map
+	- Kong - Wors Execution Time
+
+This layout arrangement is just a demo. We can layout as we like by drag and drop on the kibana
+
+On the top right, we can select the period for displaying data. Let's enable auto-refresh to get real-time data. We will enable it with a 5-second interval.
+	- Date quick Select:
+		- Enable 'Refresh Every': 5 Seconds
+		- Apply
+
+
+Previously, we created a line chart for omega using a filter. In the dashboard, we can also create a filter.
+
+Since our current dashboard takes data from all services, let's create a filter for each service.
+
+Add filter for Alpha with '+' button on the top left menu
+	= service.name is alpha
+	- Add filter
+
+Add filter for the Beta
+	= service.name is beta
+	- Add filter
+
+When we turn on both filters, we will get no data because it will filter all services with the service names alpha and beta. Ignore it for now.
+
+Add filter for the Gamma
+	= service.name is gamma
+	- Add filter
+
+Add filter for the Omega
+	= service.name is omega
+	- Add filter
+
+
+We must switch OFF all service filters to visualize data for one service obly
+	- Disable Alpha, Beta and gamma by clicking one each one and choose 'Temporary disable'
+
+Now we can see visualized data for omega sertvice.
+
+We can enable only specific service we want to look over by clicking on it and choose "Re-enable" and disable the other one.
+
+Save the Dahsboard
+	- Title: Kong Dashboard
+	- Save
+
+
+
+Using this simple dashboard, we can analyze several items.
+
+If some API is quite slow, so we should ask the engineering team to check for it.
+
+Or at certain endpoints, it has a lot of error HTTP status, either 4xx or 5xx and needs to be checked.
+
+Or, using the heatmap, we can know which services are accessed most so we might consider adding another node for load balancing during a certain time.
+
+
+
+
+
+
+56. Kong Metrics With Prometheus & Grafana
+==========================================
+
+Kong provides useful metrics and charts about the health and performance of Kong nodes as well as metrics about the usage of API behind Kong We can see those metrics, by using kong plugin, combined with prometheus and grafana.
+
+Prometheus is an open-source systems monitoring and alerting toolkit. It store time-series data. Monitoring tools built around time series data need to do the following within high transaction volume: 
+	- Collect events with timestamp Store those events
+	- Queries of these events
+
+Offer graphical monitoring of these events so that trends can be followed over time.
+
+Prometheus collects metrics from upstream servers by scraping metrics from HTTP endpoints on that server. In this case, the server is kong node and metrics generated by plugin.
+
+Grafana is a visualization tools. It can get data from various datasource and display those data as real-time charts.
+
+It is not mandatory to have both Prometheus and grafana. Each is independent tool. In fact, grafana can get data from many sources other than prometheus. But Kong already provides official grafana dashboard that we can use to display Kong metrics so we can monitor kong node in no time.
+
+Both prometheus and grafana has docker image, so we can start fast. To monitor kong, we must have prometheus and grafana, so we will run them using docker.
+
+
+
+PROMETHEUS
+----------
+
+Start containers with docker compose
+	prometheus folder terminal --> docker-compose up -d
+
+Note that we have the prometheus.yml on folder prometheus, subfolder config. It is a configuration file from prometheus, to tells prometheus where to get data from.
+
+Check of ptometheus is running on http://localhost:9090/
+Check Grafana on http://localhost:3000/
+
+Add Promethesu to Kon Manager as Plugin
+---------------------------------------
+Go to Kong Manager Plugin Page http://localhost:8002/plugins / + New Plugin / Prometheus
+	- Enable all available metrics
+		- bandwidth_metrics: checked
+		- latency_metrics: checked
+		- per_consumer: checked
+		- status_code_metrics: checked
+		- upstream_health_metrics: checked
+	- install
+
+To gather sample data, open postman. Run the "REST API Service" folder in the postman collection.
+Run 1000 iterations with 20 millisecond delay each. This should be enough for our sample.
+
+A this point, actually prometheus already gather metrics from kong plugin.
+
+
+Open Prometheus on http://localhost:9090/
+On Table Tab
+	- Add filter: kong_request_latency_ms_count
+	- Execute
+
+Prometheus provides graph for this as we can see here. But with grafana dashboard provided by kong, we will get ready-to-use visualization.
+	
+
+
+GRAFANA
+-------
+Open Grafana on http://localhost:3000/	
+	- Username: admin
+	- Password: admin
+	- Skip change the password.
+
+Define the datasource for grafana.
+Data Sources / Prometheus
+	- Name: kon-prometheus
+	- Connection / Prometheus server URL: http://prometheus:9090
+	- Interval behavior
+		- Scrape interval: 10s
+		- Query timeout: 30s
+	- Save & test
+
+
+
+We need to add grafana dashboard
+--------------------------------
+Google "kong official grafana dashboard" - https://grafana.com/grafana/dashboards/7424-kong-official/
+	- see Dahsboard ID - 7424
+
+Open Grafana on http://localhost:3000/  Dashboards / Import Dashboard
+	- Load the Dashboard with ID 7424
+	- Prometheus: Prometheus
+	- Import
+
+In the dashboard, kong already provides several charts. Those carts shows data from certain time range, and refreshed every certain interval.
+
+We can set the time range and refresh interval using option on top right.
+
+As we can see, the dashboard already provides us with several metrics for kong node, like request per second.
+
+Or in bottom, we will see connection state
+
+To see description about kong grafana dashboard, please refer to official kong prometheus plugin documentation on kong hub.
+
+In grafana, we can filter which services we want to see. For example, let’s see the metrics for gamma service.
+
+
+
+
+
