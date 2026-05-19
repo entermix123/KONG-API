@@ -1,0 +1,460 @@
+Section 13 Kong Plugin Examples Traffic Control
+===============================================
+
+
+Section Content
+---------------
+44. Access Control List (ACL)
+45. Rate Limiting
+46. Request Size Limiting
+47. Request Termination
+48. Proxy Cache
+
+
+
+
+44. Access Control List (ACL)
+=============================
+
+Let's assume we have three consumers and two services behind Kong. We already secured alpha and beta with the API key plugin; all three consumers have valid API keys. In this condition, all consumers can access alpha and beta. But we need to implement these rules. Alpha can only be accessed by the consumer, which is the partner, represented with human icons on this slide. Beta can only be accessed by consumers, which is internal, represented with a computer icon.
+
+Kong can help us to do this.
+
+We need to combine authentication, which exists on alpha and beta, with an access control list or ACL plugin. The mandatory requirement here is that we have to put an authentication plugin to services. We want to add an ACL plugin so that Kong can recognize the consumer based on authorization (in this example, API key)
+
+With the ACL plugin, we can create a "partner" group and add Partner 1 and Partner 2. Then, we create an "internal" group and add an internal one. Then, in alpha, we only allow the "partner" group to access it using the allowlist feature. In beta, we allow the "internal" group to access it. ACL plugins provide allowlist and denylist rules.
+
+Scenario presented on Access-control-list-scenario.png
+
+ACL plugins provide allowlist and denylist rules. In allowlist, we allow access from certain consumer groups and reject everything else. So if we put group blue as allowlist, only consumers in that group can access API, while the others are blocked. - Access-control-allow-list.png
+
+Conversely, if we deny one consumer group, only that group that cannot access service, the others are allowed. So if we denylist group blue, only consumers in that group cannot access API, while the others are allowed. - Access-control-denylist.png
+
+
+Implementation
+--------------
+Set Alpha and Beta services with Key Authntication Plugin
+
+Go to http://localhost:8002/services / Alpha / Plugins / + New Plugin / Key Authentication
+	- Instance Name: alpha-key-authentication
+	- key_inn_header: checked			
+	- key-In_query: uncheck			# uncheck !
+	- run_on_preflight: checked
+	- Install
+
+Go to http://localhost:8002/services / Beta / Plugins / + New Plugin / Key Authentication
+	- Instance Name: beta-key-authentication
+	- key_inn_header: checked			
+	- key-In_query: uncheck			# uncheck !
+	- run_on_preflight: checked
+	- Install
+
+Check the key authenticanios on http://localhost:8002/plugins. We should have 2 entities.
+
+
+Create another consumer 
+-----------------------
+Go to http://localhost:8002/consumers / + New Consumer
+	- Username: Zeus
+	- Save
+
+
+Add Key Authentication Credentials to each consumer
+---------------------------------------------------
+Now we have total of 3 consumers - helen, aplolo and zeus
+
+helen / Credentials / + New Key Auth Credential
+	- key: helen-key
+	- Create
+
+apolo / Credentials / + New Key Auth Credential
+	- key: apolo-key
+	- Create
+
+zeus / Credentials / + New Key Auth Credential
+	- key: zeus-key
+	- Create
+
+Now all consumers can access Alpha nad Beta services. Lets add another Plugin to Alpha.
+
+Alpha second Plugin
+-------------------
+Go to http://localhost:8002/services / Alpha / Plugins / + New Plugin / ACL
+	- Instance Name: alpha-acl
+	- allow / + Add
+		- blue 		# This setting means only consumers in ACL group "blue" can access alpha service
+	- Install
+
+
+Beta second Plugin
+------------------
+Go to http://localhost:8002/services / Beta / Plugins / + New Plugin / ACL
+	- Instance Name: beta-acl
+	- deny / + Add
+		- blue 		# This setting means consumers in ACL group "blue" can't access beta serice
+	- Install
+
+
+
+Set Consumer is group
+---------------------
+In each consumer add ACL credential
+	- helen / Credentials / + New ACL Credential
+		- Group: red
+		- Create
+
+	- apolo / Credentials / + New ACL Credential
+		- Group: green
+		- Create
+
+	- zeus / Credentials / + New ACL Credential
+		- Group: blue
+		- Create
+
+
+Test the configuration with Postmam requests on Alpha service
+-------------------------------------------------------------
+1. Postman / Course Content / REST API Services / Alpha / GET - Aplha Fast Response with helen credentials
+	Add Headers
+		- Key: apikey
+		- Value: helen-key
+
+Send the request. We should receive response with status code 403 Forbidden since helen is on the 'red' group and we did not allow red group to access alpha service.
+
+2. Send the request Postman / Course Content / REST API Services / Alpha / GET - Aplha Fast Response with apolo credentaisl
+Postman / Course Content / REST API Services / GET - Aplha Fast Response 
+	Add Headers
+		- Key: apikey
+		- Value: apolo-key
+
+We should receive response with status code 403 Forbidden since apolo is on the 'green' group and we did not allow green group to access alpha service.
+
+
+3. Send the request Postman / Course Content / REST API Services / Alpha / GET - Aplha Fast Response with zeus credentaisl
+Postman / Course Content / REST API Services / GET - Aplha Fast Response 
+	Add Headers
+		- Key: apikey
+		- Value: zeus-key
+
+We should receive response with status code 200 OK since zeus is on the 'blue' group and we allowed blue group to access alpha service.
+
+
+
+Test the configuration with Postmam requests on Beta service
+------------------------------------------------------------
+
+1. Postman / Course Content / REST API Services / Beta / GET - Beta Status
+	Add Headers
+		- Key: apikey
+		- Value: helen-key
+
+We should receive response with status code 200 OK since helen is on the 'red' group and we allowed any group but blue to access beta service.
+
+2. Send the request Postman / Course Content / REST API Services / GET - Aplha Fast Response with the apolo credentaisl
+Postman / Course Content / REST API Services / Beta / GET - Beta Status
+	Add Headers
+		- Key: apikey
+		- Value: apolo-key
+
+We should receive response with status code 200 OK since helen is on the 'green' group and we allowed any group but blue to access beta service.
+
+
+3. Send the request Postman / Course Content / REST API Services / GET - Aplha Fast Response with the zeus credentaisl
+Postman / Course Content / REST API Services / Beta / GET - Beta Status
+	Add Headers
+		- Key: apikey
+		- Value: zeus-key
+
+We should receive response with status code 403 Forbidden since zeus is on the 'blue' group and we deny blue group to access beta service.
+
+
+
+
+One consumer can be part in more than one group
+
+
+Add helen in blue group
+-----------------------
+Consumers / helen / Credentials / + New ACL Credential
+	- Group: blue
+	- Create
+
+Now helen is part of red and blue group
+
+Now test that helen can access alpha service with request 
+1. Postman / Course Content / REST API Services / Alpha / GET - Aplha Fast Response with helen credentials
+	Add Headers
+		- Key: apikey
+		- Value: helen-key
+
+We should receive response with status code 200 OK since helen is on the 'blue' group and we allowed blue group to access alpha service.
+
+Delete all plugins for the next lecture.
+
+
+
+
+
+45. Rate Limiting
+=================
+
+Rate limiting controls the amount of incoming traffic to API behind Kong. In other words, it limits how many HTTP requests a developer can make in a given period. Kong period can be seconds, minutes, hours, days, months, or years.
+
+For example, let's say we configure the limit to omega and allow five requests/minute. Assume consumer 1 sends a request every 1 second. So, Consumer 1 already requests five times within 5 seconds, and at the 6th request, it will get HTTP status 429 (too many requests), and Kong does not forward the request to omega.
+
+Thus, omega traffic is not full and can still serve requests from other consumers. Rate limiting is commonly used to allow better data flow and increase security by mitigating attacks such as Denial of Service.
+
+
+
+Configure Onemga Service to 5 requests per minute
+-------------------------------------------------
+
+Go to http://localhost:8002/plugins / + New Plugin / Rate Limiting
+	- minute: 5
+	- Install
+
+We will use default values for other parameters. Note that for policy, there is a "redis" policy. We must install a Redis server if we want to use this policy.
+
+For more information on parameters, we can read in Kong Manager or go to the Kong hub documentation page.
+
+
+Test the rate limiting with Postman
+-----------------------------------
+Use Postman / Course Content / REST API Services / Omega / GET Omega - Fast Response
+
+Send the request 5 times. On the 6th time we will receive response with status code 429 Too Many Requests
+
+
+
+
+
+46. Request Size Limiting
+=========================
+
+Some APIs might accept a large request body for example, an API to upload file. In such a case, we want to restrict the file size consumers submit to avoid burdening our API. So we can put a request size limit on Kong.
+
+Request size means the total size of the payload, like JSON and file, if any. Any request with a total size greater than allowed will be rejected. - request-size-limit.png
+
+
+Configure request size plugin
+-----------------------------
+Go to Kong Manager http://localhost:8002/plugins / + New Plugin / Request Size Limiting
+	- allowed_payload_size: 2			# 2 mb
+	- Install
+
+
+Test the request size limiting with Postman
+-------------------------------------------
+Test 1:
+Use Postman / Course Content / REST API Services / Beta / POST - Beta Calcualte MD5 
+In body tab add
+	- Key: f
+	- Value: + New file from local machine, choose small file below 2 mb
+
+When we send the request it will return response with status code 200 OK and empty hash of the file.
+
+
+Test 2:
+Use Postman / Course Content / REST API Services / Beta / POST - Beta Calcualte MD5 
+In body tab add
+	- Key: f
+	- Value: + New file from local machine, choose small file over 2 mb
+
+When we send the request it will return response with status code 413 Request Entity Too Large and error message.
+
+Delete the request size limiter for the next lections.
+
+
+
+
+
+47. Request Termination
+=======================
+
+This plugin terminates incoming requests with a specified status code and message. This plugin allows us to stop traffic on a Service or a Route or even block a particular Kong Consumer. 
+
+
+CASE 1
+------
+A sample use case for this is when alpha service is temporarily unavailable. We can set the request termination plugin on alpha, and Kong sends HTTP status 503 (Service Unavailable) with a custom error message and does not proxy the request.
+
+
+Configure Request Termination Plugin on Alpha service
+-----------------------------------------------------
+Go to Kong Manager http://localhost:8002/services / Alpha / Plugins / + New Plugin / Request Termination
+	- message: Sorry, this service is under maintenance
+	- Install
+
+For more information on parameters, we can read in Kong or go to the Kong plugin documentation page.
+
+
+Test the Request Termination Plugin with Browser
+------------------------------------------------
+In browser open address 
+	- http://localhost/alpha/actuator/health 
+	or
+	- http://localhost:8000/alpha/actuator/health 		# if docker-compose is not modified in section 7/24
+
+We receive message: {"message":"Sorry, this service is under maintenance"}
+
+
+Test the Request Termination Plugin with Postman
+------------------------------------------------
+Send request Postman / Course Content / REST API Services / Aplha / GET Alpha - Fast Response
+
+We receive response with status cod e 503 Service Temporary Unavailable with body message:
+
+{
+    "message": "Sorry, this service is under maintenance"
+}
+
+
+
+CASE 2
+------
+Another use case is to block consumers temporarily. 
+
+Suppose that we have three consumers. All have access to the alpha service. At some point, the "Consumer 3 "account is hacked, and the hacker sends many abnormal requests to Kong. We can then set the request termination plugin to consumer 3, so only request from consumer three account are terminated. Kong still serves requests from other consumers - request-termination-for-specific-consumer.png
+
+Note that, to do this use case, Kong must be able to identify consumers. The identification process can only be done if authentication has been enabled to service so that Kong can identify the user making the request.
+
+
+Block consumer zeus from accessing Alpha service
+------------------------------------------------
+
+Add Key Authentication to Alpha service
+Go to Kong Manager http://localhost:8002/services / Alpha / Plugins / + New Plugin / Key Authentication
+	- key_inn_header: checked			
+	- key-In_query: uncheck			# uncheck !
+	- run_on_preflight: checked
+	- Install
+
+Edit the Request Termination Plugin
+-----------------------------------
+Set the termination plugin for specific consumer - zeus
+	- Consumer: zeus - xxxxxxxx-xxxxxx-xxxxx-xxxx-xxxxxxxxxx
+	- Status_code: 403
+	- Save
+
+
+Add Key Authentication Credentials to each consumer
+---------------------------------------------------
+We have total of 3 consumers - helen, aplolo and zeus
+
+helen / Credentials / + New Key Auth Credential
+	- key: helen-key
+	- Create
+
+apolo / Credentials / + New Key Auth Credential
+	- key: apolo-key
+	- Create
+
+zeus / Credentials / + New Key Auth Credential
+	- key: zeus-key
+	- Create
+
+
+
+Test the case with Postman
+--------------------------
+
+Use request Postman / Course Content / REST API Services / Alpha / GET - Alpha Fast Request
+
+Set credentails for each consumer:
+Helen:
+In Headers tab add
+	- Key: apikey
+	- Value: helen-key
+
+When we send the request we will get successfull repsponse with status code 200 OK
+
+Apolo:
+In Headers tab add
+	- Key: apikey
+	- Value: apolo-key
+
+When we send the request we will get successfull repsponse with status code 200 OK
+
+Zeus:
+In Headers tab add
+	- Key: apikey
+	- Value: zeus-key
+
+When we send the request we will get repsponse with status code 403 Forbidden because of the Request Termination Plugin
+
+
+Delete all Plugins for the next examples.
+
+
+
+
+
+48. Proxy Cache
+===============
+
+Sometimes, we have an API frequently used with the same data. For example, take an API to calculate interest rates based on a particular amount and loan period. Such API might take a moment to do heavy calculations.
+
+Still, as long as the business calculation formula remains the same the result for calling API will be consistent for the same amount and loan period. If such a calculation took 5 seconds, then every API call will need at least 5 seconds to retrieve data.
+
+We can use a cache for such an API to speed up API performance. Cache allows us to reuse previously retrieved or computed data efficiently.
+
+On the first hit of API, we need 5 seconds. Then, we put the result of the calculation in the cache. We can retrieve data from the cache for the next calls to API with the same amount and loan period. This way, the next calls will take less than 5 seconds, and there will be no computation so that no processing power will be used. Cache usually takes place in memory, so the cache size is limited. Usually, we cache items for a particular time or until the cache itself is full so we need to delete old cache data for newer data to take place.
+
+We can put the cache in many places, from the API consumer, the first node in the API call chain up to the backend itself, the last node in the call chain, up to the backend itself, the last node in the call chain. The closer we put the cache to the consumer, the more performance we will gain.
+
+It usually makes sense to put a cache on the API gateway. API gateway like Kong usually offers caching features. Of course, depending on the requirement, we can also put cache on multiple nodes. - cache-patterns.png
+
+
+Test Slow Request 
+-----------------
+We can use request Portman / Course Content / REST API Services / Alpha / GET Alpha Very Slow Request
+In the Params tab we have configured Path Variable
+	- Key: param
+	- Value: Tony
+
+The reponse of this request is received after few seconds which is slow. 
+The details in the response body are different every time.
+
+
+Set Cache to Alpha Service
+--------------------------
+Go to Kong Manager http://localhost:8002/services / Alpha / Plugins / + New Service / Proxy Caching
+	- cache_ttl: 300		# seconds cache time to live
+	- strategy: memory
+	- Install
+
+Refer to the Kong plugin documentation page for a detailed explanation of the parameters.
+
+
+Test Slow Request again
+-----------------------
+Send request Portman / Course Content / REST API Services / Alpha / GET Alpha Very Slow Request
+
+The first reponse will be slow as before, but every one after the first one will be very fast because is cached.
+The details in the response body are the same as the first request.
+
+If we change Params tab configuration Path Variable
+	- Key: param
+	- Value: John		 # changed from Tony
+
+When we send the request the response will be slow as first one - (~5s).
+After we send the request again the response is very fast (~5ms) with the same response body.
+
+After the 400 seconds the cache will be delted and the first requests will be slow before chached again.
+
+
+Delete the plugin for the next lection.
+
+
+
+
+
+
+
+
+
+
+
+
+
+

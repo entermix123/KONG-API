@@ -1,1 +1,0 @@
-Section 13  Kong Plugin Examples Traffic Control
