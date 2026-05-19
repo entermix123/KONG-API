@@ -1,0 +1,128 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kong-deck-sync
+  namespace: kong
+  labels:
+    app: kong
+    component: deck-sync
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      name: kong-deck-sync
+      labels:
+        app: kong
+        component: deck-sync
+    spec:
+      restartPolicy: Never
+      serviceAccountName: kong-deck-sync
+      
+      containers:
+      - name: deck
+        image: kong/deck:v1.38.0
+        imagePullPolicy: IfNotPresent
+        
+        env:
+        # Kong Admin API URL
+        - name: DECK_KONG_ADDR
+          value: "http://kong-admin.kong.svc.cluster.local:8001"
+        
+        # API Keys from secrets (for consumer credentials)
+        - name: KONG_FREE_USER_KEY
+          valueFrom:
+            secretKeyRef:
+              name: kong-api-keys
+              key: free-user-key
+        
+        - name: KONG_PREMIUM_USER_KEY
+          valueFrom:
+            secretKeyRef:
+              name: kong-api-keys
+              key: premium-user-key
+        
+        - name: KONG_ADMIN_KEY
+          valueFrom:
+            secretKeyRef:
+              name: kong-api-keys
+              key: admin-key
+        
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          
+          echo "=========================================="
+          echo "Kong decK Configuration Sync"
+          echo "=========================================="
+          echo ""
+          
+          echo "🔍 Checking Kong Admin API availability..."
+          until curl -s -f http://kong-admin.kong.svc.cluster.local:8001/status > /dev/null 2>&1; do
+            echo "⏳ Waiting for Kong Admin API to be ready..."
+            sleep 3
+          done
+          
+          echo "✅ Kong Admin API is ready"
+          echo ""
+          
+          echo "📋 Kong version:"
+          curl -s http://kong-admin.kong.svc.cluster.local:8001 | grep version || true
+          echo ""
+          
+          echo "🔍 Validating Kong configuration..."
+          if deck gateway validate --state /config; then
+            echo "✅ Configuration is valid"
+          else
+            echo "❌ Configuration validation failed!"
+            exit 1
+          fi
+          echo ""
+          
+          echo "📊 Previewing changes..."
+          deck gateway diff --state /config --kong-addr http://kong-admin.kong.svc.cluster.local:8001 || true
+          echo ""
+          
+          echo "🚀 Applying Kong configuration..."
+          if deck gateway sync --state /config --kong-addr http://kong-admin.kong.svc.cluster.local:8001; then
+            echo "✅ Kong configuration applied successfully!"
+          else
+            echo "❌ Failed to apply Kong configuration!"
+            exit 1
+          fi
+          echo ""
+          
+          echo "📊 Current Kong state:"
+          echo "Services:"
+          curl -s http://kong-admin.kong.svc.cluster.local:8001/services | jq -r '.data[] | "  - \(.name)"' || echo "  (unable to list)"
+          echo "Routes:"
+          curl -s http://kong-admin.kong.svc.cluster.local:8001/routes | jq -r '.data[] | "  - \(.name)"' || echo "  (unable to list)"
+          echo "Consumers:"
+          curl -s http://kong-admin.kong.svc.cluster.local:8001/consumers | jq -r '.data[] | "  - \(.username)"' || echo "  (unable to list)"
+          echo ""
+          
+          echo "=========================================="
+          echo "✅ Configuration sync completed!"
+          echo "=========================================="
+        
+        volumeMounts:
+        - name: kong-config
+          mountPath: /config
+          readOnly: true
+        
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+      
+      volumes:
+      - name: kong-config
+        configMap:
+          name: kong-config

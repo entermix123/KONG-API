@@ -1,0 +1,242 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kong-config
+  namespace: kong
+  labels:
+    app: kong
+    component: config
+data:
+  kong.yaml: |
+    _format_version: "3.0"
+    _transform: true
+
+    # ============================================================
+    # SERVICES & ROUTES
+    # ============================================================
+
+    services:
+    # Backend API Service
+    - name: backend-api
+      url: http://backend-service.backend-ns.svc.cluster.local:8000
+      protocol: http
+      connect_timeout: 60000
+      write_timeout: 60000
+      read_timeout: 60000
+      retries: 5
+      tags:
+      - backend
+      - production
+      
+      routes:
+      # Public API endpoints
+      - name: public-api-v1
+        paths:
+        - /api/v1/public
+        strip_path: false
+        methods:
+        - GET
+        - POST
+        tags:
+        - public
+        - v1
+      
+      # Authenticated API endpoints
+      - name: authenticated-api-v1
+        paths:
+        - /api/v1/auth
+        strip_path: false
+        methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        tags:
+        - authenticated
+        - v1
+        
+        # Route-specific plugins
+        plugins:
+        - name: jwt
+          config:
+            key_claim_name: iss
+            secret_is_base64: false
+          tags:
+          - auth
+        
+        - name: acl
+          config:
+            allow:
+            - premium-users
+            - admin-users
+          tags:
+          - authorization
+      
+      # Service-level plugins
+      plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          hour: 10000
+          policy: local
+        tags:
+        - rate-limit
+
+    # Frontend API Service
+    - name: frontend-api
+      url: http://frontend-service.frontend-ns.svc.cluster.local:3000
+      protocol: http
+      tags:
+      - frontend
+      - production
+      
+      routes:
+      - name: frontend-route
+        paths:
+        - /
+        - /app
+        strip_path: false
+        methods:
+        - GET
+        tags:
+        - frontend
+
+    # Admin Service (secured with loopback)
+    - name: kong-admin
+      url: http://kong-admin.kong.svc.cluster.local:8001
+      protocol: http
+      tags:
+      - admin
+      - internal
+      
+      routes:
+      - name: admin-route
+        paths:
+        - /admin
+        strip_path: true
+        tags:
+        - admin
+      
+      plugins:
+      - name: key-auth
+        config:
+          key_names:
+          - apikey
+          key_in_header: true
+          key_in_query: false
+        tags:
+        - admin-auth
+      
+      - name: acl
+        config:
+          allow:
+          - kong-administrators
+        tags:
+        - admin-acl
+
+    # ============================================================
+    # GLOBAL PLUGINS
+    # ============================================================
+
+    plugins:
+    # CORS for all services
+    - name: cors
+      config:
+        origins:
+        - https://app.example.com
+        - https://admin.example.com
+        - http://localhost:3000
+        methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+        headers:
+        - Accept
+        - Authorization
+        - Content-Type
+        - X-Request-ID
+        exposed_headers:
+        - X-Auth-Token
+        - X-Request-ID
+        credentials: true
+        max_age: 3600
+      tags:
+      - global
+      - cors
+
+    # Request ID for tracing
+    - name: correlation-id
+      config:
+        header_name: X-Request-ID
+        generator: uuid
+        echo_downstream: true
+      tags:
+      - global
+      - observability
+
+    # Prometheus metrics
+    - name: prometheus
+      config:
+        per_consumer: true
+      tags:
+      - global
+      - monitoring
+
+    # ============================================================
+    # CONSUMERS
+    # ============================================================
+
+    consumers:
+    # Free tier user
+    - username: free-user
+      custom_id: user-free-001
+      tags:
+      - free-tier
+      - external
+      
+      keyauth_credentials:
+      - key: $KONG_FREE_USER_KEY
+      
+      acls:
+      - group: free-users
+      
+      plugins:
+      - name: rate-limiting
+        config:
+          minute: 10
+          hour: 100
+
+    # Premium tier user
+    - username: premium-user
+      custom_id: user-premium-001
+      tags:
+      - premium-tier
+      - external
+      
+      keyauth_credentials:
+      - key: $KONG_PREMIUM_USER_KEY
+      
+      acls:
+      - group: premium-users
+      
+      plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          hour: 10000
+
+    # Admin user
+    - username: kong-admin
+      custom_id: admin-001
+      tags:
+      - admin
+      - internal
+      
+      keyauth_credentials:
+      - key: $KONG_ADMIN_KEY
+      
+      acls:
+      - group: kong-administrators

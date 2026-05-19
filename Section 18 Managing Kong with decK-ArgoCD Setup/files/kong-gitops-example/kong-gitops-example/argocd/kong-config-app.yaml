@@ -1,0 +1,52 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kong-config
+  namespace: argocd
+  labels:
+    app: kong
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  
+  # Source repository
+  source:
+    repoURL: https://github.com/your-org/kong-gitops-example.git
+    targetRevision: main
+    path: kubernetes
+  
+  # Destination cluster
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kong
+  
+  # Sync policy
+  syncPolicy:
+    automated:
+      prune: true       # Remove resources that are no longer in Git
+      selfHeal: true    # Automatically sync when cluster state diverges
+      allowEmpty: false # Don't sync if the path is empty
+    
+    syncOptions:
+    - CreateNamespace=true  # Create namespace if it doesn't exist
+    - PruneLast=true        # Prune resources as the last step
+    
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  
+  # Ignore differences for Job resources (they change on every sync)
+  ignoreDifferences:
+  - group: batch
+    kind: Job
+    jsonPointers:
+    - /spec/template/metadata/labels
+    - /spec/template/metadata/annotations
+    - /status
+  
+  # Health check
+  revisionHistoryLimit: 10
